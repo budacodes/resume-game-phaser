@@ -8,8 +8,7 @@ export class FaceFrame {
     string,
     Phaser.GameObjects.Container
   > = new Map();
-  private currentFrame: Phaser.GameObjects.Container | null =
-    null;
+  currentFrame: Phaser.GameObjects.Container | null = null;
 
   constructor(scene: Scene) {
     this.scene = scene;
@@ -153,6 +152,8 @@ export class FaceFrame {
         duration: 300,
         ease: "Sine.easeOut",
       });
+
+      this.currentFrame.destroy();
     }
   }
 
@@ -190,5 +191,14 @@ export class FaceFrame {
 
   private convertColorToString(color: number): string {
     return `#${color.toString(16).padStart(6, "0")}`;
+  }
+
+  destroy(): void {
+    this.scene.tweens.add({
+      targets: this.currentFrame,
+      alpha: 0,
+      ease: "Power2",
+      duration: 1000,
+    });
   }
 }

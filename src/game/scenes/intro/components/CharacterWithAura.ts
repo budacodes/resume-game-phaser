@@ -136,8 +136,22 @@ export class CharacterWithAura {
   }
 
   destroy(): void {
-    this.container.destroy();
-    this.auraSprites.forEach((sprite) => sprite.destroy());
+    this.scene.tweens.add({
+      targets: this.container,
+      alpha: 0,
+      ease: "Power2",
+      duration: 1000,
+    });
+
+    this.auraSprites.forEach((sprite) => {
+      this.scene.tweens.add({
+        targets: sprite,
+        alpha: 0,
+        ease: "Power2",
+        duration: 1000,
+      });
+    });
+
     this.auraSprites = [];
   }
 

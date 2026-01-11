@@ -4,6 +4,7 @@ import {
   GenderOption,
 } from "../types/IntroTypes";
 import { INTRO_CONFIG } from "../config/IntroConfig";
+import { CursorManager } from "../../../../systems/CursorManager";
 
 interface OptionContainerData {
   card: Phaser.GameObjects.Graphics;
@@ -23,6 +24,8 @@ export class GenderOptions {
   private onSelect: (gender: PlayerGender) => void;
   private onHover: (gender: PlayerGender) => void;
 
+  private cursorManager!: CursorManager;
+
   constructor(
     scene: Scene,
     onSelect: (gender: PlayerGender) => void,
@@ -34,6 +37,8 @@ export class GenderOptions {
   }
 
   create(): void {
+    this.cursorManager = new CursorManager(this.scene);
+
     const genderOptions: GenderOption[] = [
       {
         key: "nonbinary",
@@ -140,6 +145,8 @@ export class GenderOptions {
     );
 
     card.on("pointerover", () => {
+      this.cursorManager.setState("hover");
+
       this.onHover(genderKey);
 
       this.scene.tweens.add({
@@ -151,6 +158,8 @@ export class GenderOptions {
     });
 
     card.on("pointerout", () => {
+      this.cursorManager.setState("default");
+
       this.scene.tweens.add({
         targets: container,
         y: originalY,
@@ -205,9 +214,17 @@ export class GenderOptions {
   }
 
   destroy(): void {
-    this.options.forEach((container) =>
-      container.destroy()
-    );
+    this.options.forEach((container) => {
+      this.scene.tweens.add({
+        targets: container,
+        alpha: 0,
+        ease: "Power2",
+        duration: 1000,
+      });
+
+      container.destroy();
+    });
+
     this.options = [];
     this.optionData.clear();
   }

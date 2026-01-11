@@ -27,10 +27,10 @@ const config: Types.Core.GameConfig = {
   roundPixels: true,
   scene: [
     BootScene,
+    UIScene,
     SplashScene,
     IntroScene,
     MainScene,
-    UIScene,
     InteriorScene,
   ], // Lista de Cenas
   scale: {

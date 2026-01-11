@@ -1,22 +1,36 @@
 import { Scene } from "phaser";
+import { CursorManager } from "../../systems/CursorManager";
+import { CodeRainBackground } from "./intro/components/CodeRainBackground";
 
 export class SplashScene extends Scene {
   private clickToStartText!: Phaser.GameObjects.Text;
+  private cursorManager!: CursorManager;
+  private codeRainBackground!: CodeRainBackground;
 
   constructor() {
     super("SplashScene");
   }
 
   create() {
+    this.cursorManager = CursorManager.getInstance();
+
+
+    this.cursorManager.setState("default");
+
+    this.game.events.emit("scene-changed", "SplashScene");
+
+    // Ou desativa o joystick diretamente
+    this.game.events.emit("disable-joystick");
+
     const bg = this.add.graphics();
-    bg.fillStyle(0x333333, 1);
+    bg.fillStyle(0x222222, 1);
     bg.fillRect(0, 0, this.scale.width, this.scale.height);
 
     const title = this.add
       .text(
         this.scale.width / 2,
         this.scale.height / 2 - 100,
-        "PORTFÓLIO INTERATIVO",
+        "DEBUG MY CAREER",
         {
           fontFamily: '"VT323"',
           fontSize: "48px",
@@ -44,7 +58,7 @@ export class SplashScene extends Scene {
       .text(
         this.scale.width / 2,
         this.scale.height / 2 + 50,
-        "CLIQUE NA TELA PARA INICIAR",
+        "CLIQUE AQUI PARA INICIAR",
         {
           fontFamily: '"VT323"',
           fontSize: "32px",
@@ -54,7 +68,13 @@ export class SplashScene extends Scene {
           align: "center",
         }
       )
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .on("pointerover", () => {
+        this.cursorManager.setState("hover");
+      })
+      .on("pointerout", () => {
+        this.cursorManager.setState("default");
+      });
 
     this.tweens.add({
       targets: this.clickToStartText,
@@ -64,42 +84,35 @@ export class SplashScene extends Scene {
       repeat: -1,
     });
 
-    this.createCodeGrid();
+    this.codeRainBackground = new CodeRainBackground(this);
+    this.codeRainBackground.create();
     this.setupClickHandler();
   }
 
-  private createCodeGrid() {
-    const codeChars = "01{}();:.=+-*/&|!?";
-    for (let i = 0; i < 40; i++) {
-      const x = Phaser.Math.Between(0, this.scale.width);
-      const y = Phaser.Math.Between(0, this.scale.height);
-      const char =
-        codeChars[
-          Math.floor(Math.random() * codeChars.length)
-        ];
-
-      this.add.text(x, y, char, {
-        fontFamily: "monospace",
-        fontSize: "14px",
-        color: "#4cc9f0",
-      });
-    }
-  }
-
   private setupClickHandler() {
-    const bg = this.add
+    const button = this.add
       .rectangle(
-        0,
-        0,
-        this.scale.width,
-        this.scale.height,
+        this.clickToStartText.x -
+          this.clickToStartText.width / 2,
+        this.clickToStartText.y -
+          this.clickToStartText.height / 2,
+        this.clickToStartText.width + 20,
+        this.clickToStartText.height + 15,
         0x000000,
         0
       )
       .setOrigin(0, 0)
       .setInteractive();
 
-    bg.on("pointerdown", () => {
+    button.on("pointerover", () => {
+      this.cursorManager.setState("hover");
+    });
+
+    button.on("pointerout", () => {
+      this.cursorManager.setState("default");
+    });
+
+    button.on("pointerdown", () => {
       try {
         const clickSound = this.sound.add("click_sound", {
           volume: 0.3,
@@ -118,9 +131,9 @@ export class SplashScene extends Scene {
       });
     });
 
-    this.input.keyboard?.once("keydown", () => {
-      this.scene.start("IntroScene");
-    });
+    // this.input.keyboard?.once("keydown", () => {
+    //   this.scene.start("IntroScene");
+    // });
   }
 
   update() {}

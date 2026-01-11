@@ -1,26 +1,38 @@
 import { Scene } from "phaser";
-import { PlayerGender } from "./types/IntroTypes";
+import { Building } from "../../../entities/Building";
+import {
+  IdCard,
+  IdCardData,
+} from "../../../entities/IdCard";
+import { Planet } from "../../../entities/Planet";
+import { CursorManager } from "../../../systems/CursorManager";
+import { UIScene } from "../UiScene";
+import { CareerOptions } from "./components/CareerOptions";
+import { CharacterWithAura } from "./components/CharacterWithAura";
+import { CodeRainBackground } from "./components/CodeRainBackground";
+import { DialogBox } from "./components/DialogBpx";
+import { FaceFrame } from "./components/FaceFrame";
+import { GenderOptions } from "./components/GenderOptions";
+import { NameInput } from "./components/NameInput";
 import { INTRO_CONFIG } from "./config/IntroConfig";
 import {
   INTRO_STEPS,
   getWelcomePronoun,
 } from "./config/IntroSteps";
-import { CharacterWithAura } from "./components/CharacterWithAura";
-import { FaceFrame } from "./components/FaceFrame";
-import { GenderOptions } from "./components/GenderOptions";
-import { NameInput } from "./components/NameInput";
 import { AudioSystem } from "./systems/AudioSystem";
 import { InputSystem } from "./systems/InputSystem";
 import { TextTyper } from "./systems/TextTyper";
-import { DialogBox } from "./components/DialogBpx";
-import { CodeRainBackground } from "./components/CodeRainBackground";
+import {
+  PlayerCareer,
+  PlayerGender,
+} from "./types/IntroTypes";
 
 export class IntroScene extends Scene {
   private currentStep = 0;
   private playerGender: PlayerGender = "nonbinary";
   private playerName = "";
   private canContinue = false;
-  private nameInputActive = false;
+  protected nameInputActive = false;
 
   // Systems
   private audio!: AudioSystem;
@@ -38,13 +50,64 @@ export class IntroScene extends Scene {
   // Game Objects
   private budaSprite!: Phaser.GameObjects.Sprite;
   private continuePrompt!: Phaser.GameObjects.Text;
-  private genderTitleText!: Phaser.GameObjects.Text;
+  protected genderTitleText!: Phaser.GameObjects.Text;
+
+  private cursorManager!: CursorManager;
+
+  private planet!: Planet;
+  private building!: Building;
+
+  private idCard!: IdCard;
+
+  private careerOptions!: CareerOptions;
+  private playerCareer: PlayerCareer | null = null;
+
+  private uiScene!: UIScene;
 
   constructor() {
     super("IntroScene");
   }
 
   create(): void {
+    const bg = this.add.graphics();
+    bg.fillStyle(0x222222, 1);
+    bg.fillRect(0, 0, this.scale.width, this.scale.height);
+
+    // CRÍTICO: Obtém a instância do CursorManager
+    this.cursorManager = CursorManager.getInstance();
+
+    // PRIMEIRO: Desativa completamente o cursor do sistema
+    this.input.setDefaultCursor("none");
+
+    // Remove qualquer cursor CSS que possa estar atrapalhando
+    this.forceHideSystemCursor();
+
+    // SEGUNDO: Verifica se o CursorManager já foi inicializado
+    if (!this.cursorManager.getCurrentScene()) {
+      // Se não foi inicializado, inicializa com esta cena
+      this.cursorManager.initialize(this);
+    } else {
+      // Se já foi inicializado, apenas atualiza a cena
+      this.cursorManager.updateScene(this);
+    }
+
+    // TERCEIRO: Garante que o cursor customizado está ativo e visível
+    this.cursorManager.setCustomCursorEnabled(true);
+    this.cursorManager.setState("default");
+    this.cursorManager.showCursor();
+
+    // QUARTO: Corrige conflitos de cursor
+    this.cursorManager.fixCursorConflict();
+
+    console.log(
+      "IntroScene - Estado do cursor:",
+      this.cursorManager.getState()
+    );
+
+    // Desativa eventos de joystick
+    this.game.events.emit("scene-changed", "IntroScene");
+    this.game.events.emit("disable-joystick");
+
     this.initializeSystems();
     this.initializeComponents();
     this.createBudaSprite();
@@ -53,6 +116,40 @@ export class IntroScene extends Scene {
 
     // Adiciona interação com o fundo (opcional)
     this.setupBackgroundInteraction();
+  }
+
+  private forceHideSystemCursor(): void {
+    // Método mais agressivo para garantir que o cursor do sistema fique escondido
+    this.input.setDefaultCursor("none");
+
+    // No HTML também
+    document.body.style.cursor = "none";
+
+    // Remove qualquer estilo anterior
+    const existingStyle = document.getElementById(
+      "cursor-fix-style"
+    );
+    if (existingStyle) {
+      existingStyle.remove();
+    }
+
+    // Adiciona estilo para forçar cursor none em todos os elementos
+    const style = document.createElement("style");
+    style.id = "cursor-fix-style";
+    style.innerHTML = `
+      * {
+        cursor: none !important;
+      }
+      
+      canvas {
+        cursor: none !important;
+      }
+      
+      body {
+        cursor: none !important;
+      }
+    `;
+    document.head.appendChild(style);
   }
 
   private initializeSystems(): void {
@@ -69,7 +166,10 @@ export class IntroScene extends Scene {
     this.codeRainBackground = new CodeRainBackground(this);
     this.codeRainBackground.create();
 
-    this.dialogBox = new DialogBox(this);
+    this.dialogBox = new DialogBox(this, {
+      width: 550,
+      height: 150,
+    });
 
     this.characterWithAura = new CharacterWithAura(
       this,
@@ -78,6 +178,11 @@ export class IntroScene extends Scene {
     );
 
     this.faceFrame = new FaceFrame(this);
+
+    this.planet = new Planet(this, 0, 0, "planet");
+    this.planet.setAlpha(0);
+    this.building = new Building(this, 0, 0, "building");
+    this.building.setAlpha(0);
   }
 
   private setupBackgroundInteraction(): void {
@@ -89,7 +194,7 @@ export class IntroScene extends Scene {
       );
     });
 
-    // Efeito de trail quando o mouse se move (opcional)
+    // Efeito de trail quando o mouse se move
     this.input.on(
       "pointermove",
       (pointer: Phaser.Input.Pointer) => {
@@ -99,33 +204,39 @@ export class IntroScene extends Scene {
             pointer.y
           );
         }
+
+        // IMPORTANTE: Atualiza a posição do cursor customizado
+        if (this.cursorManager.isCustomCursorActive()) {
+          // O próprio CursorManager já cuida disso, mas garantimos
+          this.cursorManager.showCursor();
+        }
       }
     );
   }
 
   private createBudaSprite(): void {
-    const budaTexture = this.textures.exists("buda-idle")
-      ? "buda-idle"
-      : "bob-idle";
+    const budaTexture = "buda-idle";
 
     this.budaSprite = this.add
-      .sprite(100, this.scale.height - 100, budaTexture)
+      .sprite(0, 0, budaTexture)
       .setScale(0.35)
-      .setVisible(true);
+      .setAlpha(0);
 
-    if (!this.anims.exists("buda-talk")) {
-      this.anims.create({
-        key: "buda-talk",
-        frames: this.anims.generateFrameNumbers(
-          budaTexture,
-          {
-            frames: [0, 1, 2, 1, 0, 3, 4, 3],
-          }
-        ),
-        frameRate: 6,
-        repeat: -1,
+    setTimeout(() => {
+      this.budaSprite
+        .setX(
+          this.scale.width / 2 -
+            this.dialogBox.size.width / 2 -
+            100
+        )
+        .setY(this.scale.height - 120);
+
+      this.tweens.add({
+        targets: this.budaSprite,
+        alpha: 1,
+        duration: 1000,
       });
-    }
+    }, 100);
   }
 
   private createContinuePrompt(): void {
@@ -133,7 +244,7 @@ export class IntroScene extends Scene {
       .text(
         this.scale.width / 2,
         this.scale.height - 35,
-        "[ ENTER para continuar ]",
+        "[ ESPAÇO para continuar ]",
         {
           ...INTRO_CONFIG.fonts.small,
           color: this.convertColorToString(
@@ -168,20 +279,181 @@ export class IntroScene extends Scene {
     this.canContinue = false;
     this.inputSystem.removeAllListeners();
 
-    this.budaSprite.play("buda-talk");
+    // Reseta o cursor para estado padrão a cada step
+    this.cursorManager.setState("default");
 
-    if (this.currentStep < INTRO_STEPS.length) {
-      this.showText(INTRO_STEPS[this.currentStep].text);
-    } else if (this.currentStep === 4) {
-      const welcomeText = `Seja ${getWelcomePronoun(
-        this.playerGender
-      )}, ${
-        this.playerName
-      }!\nSeu crachá está pronto. Explore e descubra minha jornada!`;
-      this.showText(welcomeText);
-    } else if (this.currentStep === 5) {
-      this.completeIntroduction();
+    switch (this.currentStep) {
+      case 0:
+        this.planet.show(
+          0.5,
+          1,
+          this.scale.width / 2,
+          this.scale.height -
+            this.dialogBox.size.height -
+            this.planet.height / 2 -
+            100,
+          1
+        );
+        this.showText(INTRO_STEPS[0].text);
+        break;
+      case 1:
+        this.planet.hide(0);
+        this.building.show(
+          0.5,
+          1,
+          this.scale.width / 2,
+          this.scale.height -
+            this.dialogBox.size.height -
+            this.planet.height / 2 -
+            100,
+          1
+        );
+        this.showText(INTRO_STEPS[1].text);
+        break;
+      case 2:
+        this.building.hide(0);
+        this.showText(INTRO_STEPS[2].text);
+        break;
+      case 3:
+        this.showText(INTRO_STEPS[3].text);
+        break;
+      case 4: // Após seleção de gênero
+        this.faceFrame.destroy();
+        this.genderOptions.destroy();
+        this.characterWithAura.destroy();
+        this.genderTitleText.destroy();
+        const genderText = `Perfeito! Agora, conte-nos sobre sua carreira.`;
+        this.showText(genderText);
+        break;
+      case 5: // Seleção de cargo
+        this.showCareerSelection();
+        break;
+      case 6:
+        this.time.delayedCall(1000, () => {
+          this.createPlayerIdCard();
+        });
+        const welcomeText = `Seja ${getWelcomePronoun(
+          this.playerGender
+        )}, ${
+          this.playerName
+        }!\nSeu crachá está pronto. Explore e descubra minha jornada!`;
+        this.showText(welcomeText);
+        break;
+      case 7:
+        if (this.idCard) {
+          this.tweens.add({
+            targets: this.idCard,
+            scale: 1.2,
+            alpha: 0,
+            duration: 1000,
+            ease: "Power3.out",
+          });
+        }
+        this.completeIntroduction();
+        break;
     }
+  }
+
+  private showCareerSelection(): void {
+    this.continuePrompt.setVisible(false);
+    this.canContinue = false;
+
+    // Remove listeners de continuação
+    this.inputSystem.removeAllListeners();
+
+    // Garante que o cursor está configurado corretamente
+    this.cursorManager.setState("default");
+    this.cursorManager.showCursor();
+
+    // Resetar estado de seleção
+    this.playerCareer = null;
+
+    // Cria opções de carreira
+    this.careerOptions = new CareerOptions(
+      this,
+      (careerId) =>
+        this.selectCareer(careerId as PlayerCareer),
+      (careerId) => this.onCareerHover(careerId)
+    );
+
+    this.careerOptions.create();
+  }
+
+  private onCareerHover(careerId: string): void {
+    // Efeito visual/sonoro ao passar o mouse
+    this.audio.playSelect();
+
+    // IMPORTANTE: Atualiza o cursor para estado "hover"
+    this.cursorManager.setState("hover");
+  }
+
+  private selectCareer(career: PlayerCareer): void {
+    if (this.playerCareer !== null) return; // Evitar seleções múltiplas
+
+    this.playerCareer = career;
+    this.audio.playConfirm();
+
+    // Efeito visual
+    this.codeRainBackground.createMatrixEffect(
+      this.scale.width / 2,
+      320
+    );
+
+    // Limpa e avança após delay
+    this.time.delayedCall(1000, () => {
+      this.careerOptions.destroy();
+      this.currentStep = 6;
+      this.showStep();
+    });
+  }
+
+  private getCareerWelcomeText(): string {
+    const careerTitles = {
+      recruiter: "Recrutador(a) de Talentos",
+      manager: "Gerente de Projetos",
+      developer: "Desenvolvedor(a)",
+      designer: "Designer Criativo(a)",
+      analyst: "Analista de Sistemas",
+      entrepreneur: "Empreendedor(a) Visionário(a)",
+    };
+
+    return (
+      careerTitles[this.playerCareer!] || "Profissional"
+    );
+  }
+
+  private createPlayerIdCard(): void {
+    // A textura do rosto segue o padrão do FaceFrame
+    const faceTexture = `${this.playerGender}-face`;
+
+    // Dados para o IdCard
+    const idCardData: IdCardData = {
+      name: this.playerName,
+      gender: this.playerGender,
+      faceTexture: faceTexture,
+      role: this.playerCareer,
+    };
+
+    // Posiciona o IdCard
+    const x = this.scale.width / 2;
+    const y = this.scale.height / 2;
+
+    // Cria o IdCard
+    this.idCard = new IdCard(this, x, y, idCardData);
+
+    // Animação de entrada
+    this.idCard.show();
+
+    // Torna interativo
+    this.idCard.makeInteractive();
+
+    // Efeito de validação após 1 segundo
+    this.time.delayedCall(1000, () => {
+      this.idCard.playValidationEffect();
+    });
+
+    // Move o prompt de continuação para baixo do IdCard
+    this.continuePrompt.setY(this.scale.height - 80);
   }
 
   private showText(message: string): void {
@@ -189,10 +461,15 @@ export class IntroScene extends Scene {
     this.dialogBox.clearText();
     this.continuePrompt.setVisible(false);
 
+    this.budaSprite.setTexture("buda-talking");
+
     this.textTyper.typeText(
       this.dialogBox["textContent"], // Acessando membro privado via index
       message,
-      () => this.setupContinuePrompt()
+      () => {
+        this.setupContinuePrompt();
+        this.budaSprite.setTexture("buda-idle");
+      }
     );
   }
 
@@ -227,8 +504,14 @@ export class IntroScene extends Scene {
     this.canContinue = false;
     this.nameInputActive = true;
 
+    // Remove listeners de continuação
+    this.inputSystem.removeAllListeners();
+
+    // IMPORTANTE: Muda cursor para texto durante input
+    this.cursorManager.setState("text");
+
     this.nameInput = new NameInput(this, (name: string) => {
-      this.playerName = name;
+      this.playerName = name.toUpperCase();
       this.audio.playConfirm();
 
       this.codeRainBackground.createMatrixEffect(
@@ -236,17 +519,14 @@ export class IntroScene extends Scene {
         320
       );
 
-      this.createSparkleEffect(
-        this.scale.width / 2,
-        320,
-        INTRO_CONFIG.colors.success
-      );
-
       this.time.delayedCall(800, () => {
         this.nameInput?.destroy();
         this.nameInput = null;
         this.currentStep = 3;
         this.showStep();
+
+        // Volta para cursor padrão após input
+        this.cursorManager.setState("default");
       });
     });
 
@@ -257,26 +537,21 @@ export class IntroScene extends Scene {
     this.continuePrompt.setVisible(false);
     this.canContinue = false;
 
-    // Cria o personagem com aura (posicionado à esquerda do quadro)
-    this.characterWithAura.create("nonbinary");
+    // Remove listeners de continuação
+    this.inputSystem.removeAllListeners();
 
-    // Ajusta a posição do personagem para ficar à esquerda do quadro
-    this.characterWithAura.container.setPosition(
-      this.scale.width / 2 - 75, // 150px à esquerda do centro
-      300
-    );
+    // Configura cursor para seleção
+    this.cursorManager.setState("default");
+    this.cursorManager.showCursor();
+
+    // Cria o personagem com aura
+    this.characterWithAura.create("nonbinary");
+    this.characterWithAura.container
+      .setPosition(this.scale.width / 2 - 75, 300)
+      .setAlpha(0);
 
     this.createGenderTitle();
 
-    // Cria o quadro de rosto (no centro)
-    this.faceFrame.create(
-      "nonbinary",
-      this.scale.width / 2,
-      200
-    );
-    this.faceFrame.show("nonbinary");
-
-    // Cria as opções de gênero
     this.genderOptions = new GenderOptions(
       this,
       (gender) => this.selectGender(gender),
@@ -290,11 +565,11 @@ export class IntroScene extends Scene {
     this.genderTitleText = this.add
       .text(
         this.scale.width / 2,
-        36, // Posicionado mais acima para não atrapalhar
+        36,
         "SELECIONE SUA IDENTIDADE DE GÊNERO",
         {
           ...INTRO_CONFIG.fonts.dialog,
-          fontSize: "32px", // Um pouco menor
+          fontSize: "32px",
           color: this.convertColorToString(
             INTRO_CONFIG.colors.highlight
           ),
@@ -303,16 +578,20 @@ export class IntroScene extends Scene {
         }
       )
       .setOrigin(0.5)
-      .setDepth(25); // Depth alto para ficar acima de tudo
+      .setDepth(25);
   }
 
   private onGenderHover(gender: PlayerGender): void {
     // Atualiza o personagem com o gênero selecionado
     this.characterWithAura.updateGender(gender);
+    this.characterWithAura.container.setAlpha(1);
 
     // Atualiza o quadro de rosto
     this.faceFrame.show(gender);
     this.audio.playSelect();
+
+    // IMPORTANTE: Atualiza o cursor para estado "hover"
+    this.cursorManager.setState("hover");
   }
 
   private selectGender(gender: PlayerGender): void {
@@ -320,48 +599,58 @@ export class IntroScene extends Scene {
     this.playerGender = gender;
 
     this.genderOptions.highlightSelected(gender);
-
     this.characterWithAura.updateGender(gender);
 
     this.registry.set("playerSprite", `${gender}-run`);
     this.registry.set("playerSpriteFace", `${gender}-face`);
 
-    this.createSparkleEffect(
-      this.characterWithAura.container.x,
-      this.characterWithAura.container.y,
-      INTRO_CONFIG.colors[gender]
+    this.codeRainBackground.createMatrixEffect(
+      this.scale.width / 2,
+      320
     );
 
-    this.time.delayedCall(1500, () => {
-      this.genderTitleText.destroy();
-      this.genderOptions.destroy();
-      this.characterWithAura.fadeOut();
-      this.faceFrame.createParticles(
-        this.scale.width / 2,
-        200,
-        gender
-      );
-
-      this.currentStep = 4;
-      this.showStep();
-    });
+    this.currentStep = 4;
+    this.showStep();
   }
 
   private completeIntroduction(): void {
     this.registry.set("playerName", this.playerName);
     this.registry.set("playerGender", this.playerGender);
+    this.registry.set("playerCareer", this.playerCareer);
     this.registry.set("hasSeenIntro", true);
     this.registry.set(
       "playerSprite",
       `${this.playerGender}-run`
     );
 
+    if (this.idCard) {
+      // Salva dados do IdCard no registro
+      this.registry.set("idCardData", {
+        nome: this.playerName,
+        genero: this.playerGender,
+        faceTexture: `${this.playerGender}-face`,
+      });
+
+      // Efeito de zoom e fade out
+      this.tweens.add({
+        targets: this.idCard,
+        scale: 1.3,
+        alpha: 0,
+        duration: 800,
+        ease: "Power3.out",
+        onComplete: () => {
+          if (this.idCard) {
+            this.idCard.destroy();
+          }
+        },
+      });
+    }
+
     this.cleanup();
 
-    // Efeito final no background
-    this.codeRainBackground.createShockwave(
+    this.codeRainBackground.createMatrixEffect(
       this.scale.width / 2,
-      this.scale.height / 2
+      320
     );
 
     this.cameras.main.fadeOut(2000, 0, 0, 0);
@@ -391,36 +680,27 @@ export class IntroScene extends Scene {
     this.audio.stopMusic();
     this.tweens.killAll();
     this.time.removeAllEvents();
-  }
 
-  private createSparkleEffect(
-    x: number,
-    y: number,
-    color: number
-  ): void {
-    for (let i = 0; i < 10; i++) {
-      const angle = Phaser.Math.Between(0, 360);
-      const speed = 100;
-      const distance = speed;
-
-      const particle = this.add.graphics({ x, y });
-      particle.fillStyle(color, 1);
-      particle.fillCircle(0, 0, 2);
-
-      this.tweens.add({
-        targets: particle,
-        x:
-          x +
-          Math.cos(Phaser.Math.DegToRad(angle)) * distance,
-        y:
-          y +
-          Math.sin(Phaser.Math.DegToRad(angle)) * distance,
-        alpha: 0,
-        scale: 3,
-        duration: 6000,
-        onComplete: () => particle.destroy(),
-      });
+    // Limpa qualquer input
+    if (this.nameInput) {
+      this.nameInput.destroy();
+      this.nameInput = null;
     }
+
+    if (this.careerOptions) {
+      this.careerOptions.destroy();
+    }
+
+    // Remove o estilo CSS que força cursor none
+    const style = document.getElementById(
+      "cursor-fix-style"
+    );
+    if (style) {
+      style.remove();
+    }
+
+    // Restaura cursor padrão antes de sair
+    this.cursorManager.setState("default");
   }
 
   private convertColorToString(color: number): string {

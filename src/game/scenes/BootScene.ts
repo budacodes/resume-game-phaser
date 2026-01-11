@@ -128,13 +128,17 @@ export class BootScene extends Scene {
     );
     this.load.audio("snd_error", "assets/sounds/error.wav");
 
-    try {
-      this.load.spritesheet(
-        "buda-idle",
-        "assets/sprites/buda.png",
-        { frameWidth: 500, frameHeight: 500 }
-      );
-    } catch (error) {}
+    this.load.spritesheet(
+      "buda-idle",
+      "assets/sprites/buda_idle.png",
+      { frameWidth: 379, frameHeight: 613 }
+    );
+
+    this.load.spritesheet(
+      "buda-talking",
+      "assets/sprites/buda_talking.png",
+      { frameWidth: 483, frameHeight: 613 }
+    );
 
     this.load.audio("type_1", "assets/sounds/type_1.wav");
     this.load.audio("type_2", "assets/sounds/type_2.wav");
@@ -153,42 +157,50 @@ export class BootScene extends Scene {
       "assets/sounds/music/intro.wav"
     );
 
+    this.load.spritesheet(
+      "custom-cursor",
+      "assets/ui/cursor-sheet.png",
+      {
+        frameWidth: 34, // Largura de cada frame
+        frameHeight: 42, // Altura de cada frame
+        startFrame: 0,
+        endFrame: 2, // Total de frames - 1 (0 a 2)
+      }
+    );
+
+    this.load.spritesheet(
+      "planet",
+      "assets/sprites/planet.png",
+      {
+        frameWidth: 128, // Largura de cada frame
+        frameHeight: 128, // Altura de cada frame
+        startFrame: 0,
+        endFrame: 13, // Total de frames - 1 (0 a 2)
+      }
+    );
+
+    this.load.spritesheet(
+      "building",
+      "assets/sprites/building.png",
+      {
+        frameWidth: 309, // Largura de cada frame
+        frameHeight: 201, // Altura de cada frame
+      }
+    );
+
     this.createLoadingBar();
   }
 
   create() {
-    // DEBUG: Verificar quais texturas foram carregadas
-    console.log("=== TEXTURAS CARREGADAS ===");
-    console.log(
-      "male-face:",
-      this.textures.exists("male-face")
-        ? "✓"
-        : "✗ (não existe ou erro)"
-    );
-    console.log(
-      "female-face:",
-      this.textures.exists("female-face")
-        ? "✓"
-        : "✗ (não existe ou erro)"
-    );
-    console.log(
-      "nonbinary-face:",
-      this.textures.exists("nonbinary-face")
-        ? "✓"
-        : "✗ (não existe ou erro)"
-    );
-    console.log(
-      "frame-gold:",
-      this.textures.exists("frame-gold")
-        ? "✓"
-        : "✗ (não existe ou erro)"
-    );
+    const bg = this.add.graphics();
+    bg.fillStyle(0x222222, 1);
+    bg.fillRect(0, 0, this.scale.width, this.scale.height);
+
+    this.scene.launch("UIScene");
+    this.scene.bringToTop("UIScene");
 
     // Se frame-gold não existe, vamos criar programaticamente
     if (!this.textures.exists("frame-gold")) {
-      console.log(
-        "AVISO: frame-gold.png não encontrado. Criando frame programaticamente..."
-      );
       this.createFallbackFrame();
     }
 
@@ -228,8 +240,6 @@ export class BootScene extends Scene {
     // Renderiza para textura
     graphics.generateTexture("frame-gold", width, height);
     graphics.destroy();
-
-    console.log("Frame fallback criado como 'frame-gold'");
   }
 
   private createLoadingBar() {
@@ -238,20 +248,20 @@ export class BootScene extends Scene {
 
     const progressBar = this.add.graphics();
     const progressBox = this.add.graphics();
-    progressBox.fillStyle(0x222222, 0.8);
-    progressBox.fillRect(
-      width / 2 - 160,
-      height / 2 - 25,
-      320,
-      50
-    );
+    progressBox.fillStyle(0x444444, 1);
+    progressBar.setDepth(1);
+    progressBox
+      .fillRect(width / 2 - 160, height / 2 - 25, 320, 50)
+      .setDepth(0);
 
     const loadingText = this.add
       .text(width / 2, height / 2 - 50, "Carregando...", {
-        font: "20px monospace",
+        fontSize: "40px",
+        fontFamily: "'VT323'",
         color: "#ffffff",
       })
-      .setOrigin(0.5, 0.5);
+      .setOrigin(0.5, 0.5)
+      .setDepth(1);
 
     this.load.on("progress", (value: number) => {
       progressBar.clear();

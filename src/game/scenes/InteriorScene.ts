@@ -55,6 +55,11 @@ export class InteriorScene extends Scene {
     // 1. FUNDO PRETO (Importante para interiores pequenos)
     this.cameras.main.setBackgroundColor("#111111");
 
+    this.game.events.emit("scene-changed", "InteriorScene");
+
+    // Ou ativa o joystick diretamente
+    this.game.events.emit("enable-joystick");
+
     // 2. RECUPERA A UI (Sem reiniciar a cena, pois ela é persistente)
     if (this.scene.isActive("UIScene")) {
       this.uiScene = this.scene.get("UIScene") as UIScene;
@@ -340,8 +345,6 @@ export class InteriorScene extends Scene {
     const data = zone.getData("tiledData");
     const type = this.getTiledProperty(data, "actionType");
 
-    console.log(type);
-
     switch (type) {
       case "dialog":
         this.handleDialogInteraction(data);
@@ -408,11 +411,6 @@ export class InteriorScene extends Scene {
         "requiresAccess"
       ),
     };
-
-    console.log(
-      "dentro do warp",
-      sceneProperties.requiresAccess
-    );
 
     if (
       sceneProperties.requiresAccess &&

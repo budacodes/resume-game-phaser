@@ -184,23 +184,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private createAnimations(spriteKey: string) {
     const anims = this.scene.anims;
 
-    // Verifica se as animações JÁ EXISTEM (globalmente)
-    // Isso evita criar animações duplicadas que causam o erro
-    if (anims.exists("run-up")) {
-      console.log(
-        `Animações já existem, reutilizando para ${spriteKey}`
-      );
-      return;
-    }
-
-    console.log(
-      `Criando animações para sprite: ${spriteKey}`
-    );
-
-    // CRIA ANIMAÇÕES GLOBAIS (uma vez só)
-    // Elas funcionam para QUALQUER sprite que tenha a mesma organização
-
-    // 1. CIMA - frames 0, 1, 2
     anims.create({
       key: "run-up",
       frames: anims.generateFrameNumbers(spriteKey, {
@@ -243,7 +226,5 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       frameRate: 9,
       repeat: -1,
     });
-
-    console.log("Animações criadas com sucesso!");
   }
 }

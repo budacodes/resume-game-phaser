@@ -47,29 +47,25 @@ export class MainScene extends Scene {
   }
 
   create() {
-    console.log("MainScene.create() iniciando...");
-
     this.mapManager = new MapManager(this);
     this.mapManager.init("hub");
 
     this.scene.launch("UIScene");
 
+    this.game.events.emit("scene-changed", "MainScene");
+
+    this.game.events.emit("enable-joystick");
+
     this.time.delayedCall(100, () => {
       if (this.scene.isActive("UIScene")) {
         this.uiScene = this.scene.get("UIScene") as UIScene;
-
-        this.createPlayer();
-        this.createInteractionZones();
-        this.initAudioAndInputs();
-        this.isPlayerReady = true;
-        this.setupIntro();
-      } else {
-        this.createPlayer();
-        this.createInteractionZones();
-        this.initAudioAndInputs();
-        this.isPlayerReady = true;
-        this.setupIntro();
       }
+
+      this.createPlayer();
+      this.createInteractionZones();
+      this.initAudioAndInputs();
+      this.isPlayerReady = true;
+      this.setupIntro();
     });
   }
 
@@ -84,10 +80,6 @@ export class MainScene extends Scene {
     // Pega o sprite do registry - IMPORTANTE: deve ser um dos 3
     const playerSprite =
       this.registry.get("playerSprite") || "male-run";
-
-    console.log(
-      `Criando player com sprite: ${playerSprite}`
-    );
 
     // Passa o spriteKey para o Player
     this.player = new Player(

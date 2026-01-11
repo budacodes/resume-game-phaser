@@ -240,7 +240,7 @@ export class CodeRainBackground {
     const text = this.scene.add
       .text(x, y, char, {
         fontFamily: "VT323",
-        fontSize: "14px",
+        fontSize: "24px",
         color: this.getRandomColor(),
       })
       .setOrigin(0.5)

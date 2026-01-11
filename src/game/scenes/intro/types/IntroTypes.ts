@@ -1,9 +1,24 @@
 export type PlayerGender = "male" | "female" | "nonbinary";
+export type PlayerCareer =
+  | "recruiter"
+  | "manager"
+  | "developer"
+  | "designer"
+  | "analyst"
+  | "entrepreneur";
 
 export interface IntroStep {
-  id: number;
-  text: string;
-  action?: () => void;
+    id: number;
+    text: string;
+    type?: 'dialog' | 'name-input' | 'gender-select' | 'career-select' | 'idcard-show';
+    action?: () => void; // Ação opcional para o passo
+}
+
+export interface PlayerData {
+    name: string;
+    gender: PlayerGender;
+    career: PlayerCareer;
+    faceTexture: string;
 }
 
 export interface GenderOption {
