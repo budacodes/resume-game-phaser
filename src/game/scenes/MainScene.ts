@@ -1,7 +1,7 @@
 import { Scene } from "phaser";
 import { Player } from "../../entities/Player";
-import { CursorManager } from "../../systems/CursorManager";
-import { MapManager } from "../../systems/MapManager";
+import { CursorManager } from "../../managers/CursorManager";
+import { MapManager } from "../../managers/MapManager";
 import { UIScene } from "./ui/UiScene";
 
 export class MainScene extends Scene {
@@ -335,11 +335,11 @@ export class MainScene extends Scene {
 
   private handleFountainInteraction() {
     this.isQuestionMode = true;
-    this.game.events.emit("dialog-started");
-    this.game.events.emit(
-      "show-dialog",
-      "A fonte emite uma aura estranha...\nDeseja jogar uma moeda?\n\n[Y] Sim [N] Não"
-    );
+
+    this.game.events.emit("dialog-started", {
+      text: "A fonte emite uma aura estranha...\nDeseja jogar uma moeda?\n\n[Y] Sim [N] Não",
+      mode: "question",
+    });
   }
 
   private handleQuestionInput() {
@@ -347,10 +347,10 @@ export class MainScene extends Scene {
       this.coinSound.play();
       setTimeout(() => this.waterDropSound.play(), 400);
 
-      this.game.events.emit(
-        "show-dialog",
-        "Você fez um pedido silencioso..."
-      );
+      this.game.events.emit("dialog-started", {
+        hint: "[ ESPAÇO para continuar ]",
+        text: "Você fez um pedido silencioso...",
+      });
 
       // this.dialogBox.setHint("[ ESPAÇO para continuar ]");
     }

@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { SettingsManager } from "../../../../managers/SettingsManager";
-import { CursorManager } from "../../../../systems/CursorManager";
+import { CursorManager } from "../../../../managers/CursorManager";
 
 export class SettingsMenu {
   private scene: Phaser.Scene;

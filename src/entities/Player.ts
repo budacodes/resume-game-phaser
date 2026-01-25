@@ -1,7 +1,7 @@
 import { Scene } from "phaser";
 import { DEPTH } from "../config/Layers";
 import { UIScene } from "../game/scenes/ui/UiScene";
-import { PlayerCareer } from "../game/scenes/intro/types/IntroTypes";
+import { PlayerCareer } from "../config/types/IntroTypes";
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
   declare body: Phaser.Physics.Arcade.Body;

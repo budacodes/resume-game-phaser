@@ -1,9 +1,11 @@
 // scenes/UIScene.ts
 import { Scene } from "phaser";
 import VirtualJoystick from "phaser3-rex-plugins/plugins/virtualjoystick.js";
+import { DialogPayload } from "../../../config/models/DialogPayload";
+import { DialogMode } from "../../../config/types/DialogTypes";
+import { CursorManager } from "../../../managers/CursorManager";
 import { SettingsManager } from "../../../managers/SettingsManager";
-import { CursorManager } from "../../../systems/CursorManager";
-import { DialogBox } from "../../ui/_DialogBox";
+import { DialogBox } from "./components/_DialogBox";
 import { QuestLog } from "./components/QuestLog";
 import { QuestToast } from "./components/QuestToast";
 import { SettingsMenu } from "./components/SettingsMenu";
@@ -17,14 +19,12 @@ export class UIScene extends Scene {
   private cursorManager!: CursorManager;
   private settingsMenu!: SettingsMenu;
   private questLog!: QuestLog;
-
   private isJoystickEnabled = false;
   private isTouchDevice = false;
   private isMobileDevice = false;
-
   private mainUIContainer!: Phaser.GameObjects.Container;
-
   private dialogBox!: DialogBox;
+  private currentDialogMode: DialogMode = "read";
 
   constructor() {
     super({ key: "UIScene" });
@@ -147,18 +147,28 @@ export class UIScene extends Scene {
     this.dialogBox = new DialogBox(this);
     this.dialogBox.hide();
 
-    this.game.events.on("show-dialog", (text: string) => {
-      this.dialogBox.show(text);
-    });
-
     this.game.events.on("hide-dialog", () => {
       this.dialogBox.hide();
+      this.dialogBox.clearHint();
       this.game.events.emit("dialog-finished");
     });
 
     this.input.keyboard?.on("keydown-SPACE", () => {
+      if (this.currentDialogMode !== "read") return;
+
       this.game.events.emit("hide-dialog");
     });
+
+    this.game.events.on(
+      "dialog-started",
+      (payload: DialogPayload) => {
+        const mode = payload.mode ?? "read";
+        this.currentDialogMode = mode;
+
+        this.dialogBox.show(payload.text);
+        this.dialogBox.setHint(payload.hint ?? null);
+      }
+    );
   }
 
   private applyCurrentScale(scale: number): void {

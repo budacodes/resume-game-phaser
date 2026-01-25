@@ -1,6 +1,6 @@
 // entities/IdCard.ts
 import Phaser from "phaser";
-import { PlayerGender } from "../game/scenes/intro/types/IntroTypes";
+import { PlayerGender } from "../config/types/IntroTypes";
 import { CareerOptions } from "../game/scenes/intro/components/CareerOptions";
 
 export interface IdCardData {

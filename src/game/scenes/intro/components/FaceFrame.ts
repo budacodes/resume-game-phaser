@@ -1,5 +1,5 @@
 import { Scene } from "phaser";
-import { PlayerGender } from "../types/IntroTypes";
+import { PlayerGender } from "../../../../config/types/IntroTypes";
 import { INTRO_CONFIG } from "../config/IntroConfig";
 
 export class FaceFrame {

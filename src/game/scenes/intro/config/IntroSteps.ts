@@ -1,4 +1,4 @@
-import { IntroStep } from "../types/IntroTypes";
+import { IntroStep } from "../../../../config/types/IntroTypes";
 
 export const INTRO_STEPS: IntroStep[] = [
   {

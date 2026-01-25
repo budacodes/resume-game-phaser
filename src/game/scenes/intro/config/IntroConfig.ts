@@ -1,4 +1,4 @@
-import { IntroConfig } from "../types/IntroTypes";
+import { IntroConfig } from "../../../../config/types/IntroTypes";
 
 export const INTRO_CONFIG: IntroConfig = {
   colors: {

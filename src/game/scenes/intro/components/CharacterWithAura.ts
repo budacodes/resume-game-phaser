@@ -1,5 +1,5 @@
 import { Scene } from "phaser";
-import { PlayerGender } from "../types/IntroTypes";
+import { PlayerGender } from "../../../../config/types/IntroTypes";
 
 export class CharacterWithAura {
   private scene: Scene;

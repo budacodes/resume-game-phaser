@@ -2,9 +2,9 @@ import { Scene } from "phaser";
 import {
   PlayerGender,
   GenderOption,
-} from "../types/IntroTypes";
+} from "../../../../config/types/IntroTypes";
 import { INTRO_CONFIG } from "../config/IntroConfig";
-import { CursorManager } from "../../../../systems/CursorManager";
+import { CursorManager } from "../../../../managers/CursorManager";
 
 interface OptionContainerData {
   card: Phaser.GameObjects.Graphics;

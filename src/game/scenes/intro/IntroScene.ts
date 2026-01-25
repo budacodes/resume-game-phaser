@@ -8,13 +8,13 @@ import { Planet } from "../../../entities/Planet";
 import { AudioManager } from "../../../managers/AudioManager";
 import { SettingsManager } from "../../../managers/SettingsManager";
 import { TextManager } from "../../../managers/TextManager";
-import { CursorManager } from "../../../systems/CursorManager";
+import { CursorManager } from "../../../managers/CursorManager";
 import { SettingsMenu } from "../ui/components/SettingsMenu";
 import { UIScene } from "../ui/UiScene";
 import { CareerOptions } from "./components/CareerOptions";
 import { CharacterWithAura } from "./components/CharacterWithAura";
 import { CodeRainBackground } from "./components/CodeRainBackground";
-import { DialogBox } from "../../ui/_DialogBox";
+import { DialogBox } from "../ui/components/_DialogBox";
 import { FaceFrame } from "./components/FaceFrame";
 import { GenderOptions } from "./components/GenderOptions";
 import { NameInput } from "./components/NameInput";
@@ -26,7 +26,7 @@ import { TextTyper } from "./systems/TextTyper";
 import {
   PlayerCareer,
   PlayerGender,
-} from "./types/IntroTypes";
+} from "../../../config/types/IntroTypes";
 import { BudaDog } from "../../../entities/BudaDog";
 
 export class IntroScene extends Scene {
@@ -69,10 +69,6 @@ export class IntroScene extends Scene {
   private playerCareer: PlayerCareer | null = null;
 
   private uiScene!: UIScene;
-
-  // UI Elements
-  private settingsButton!: Phaser.GameObjects.Text;
-  private questLogButton!: Phaser.GameObjects.Text;
 
   constructor() {
     super("IntroScene");

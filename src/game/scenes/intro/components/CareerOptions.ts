@@ -1,5 +1,5 @@
 import { Scene } from "phaser";
-import { CursorManager } from "../../../../systems/CursorManager";
+import { CursorManager } from "../../../../managers/CursorManager";
 
 export type CareerOption = {
   id: string;

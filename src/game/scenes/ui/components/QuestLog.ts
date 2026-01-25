@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { CursorManager } from "../../../../systems/CursorManager";
+import { CursorManager } from "../../../../managers/CursorManager";
 import { QuestManager } from "../../../../managers/QuestManager";
 
 // Interface para estruturar as missões

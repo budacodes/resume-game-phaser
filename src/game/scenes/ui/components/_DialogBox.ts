@@ -1,5 +1,5 @@
 import { Scene } from "phaser";
-import { SettingsManager } from "../../managers/SettingsManager";
+import { SettingsManager } from "../../../../managers/SettingsManager";
 
 export class DialogBox {
   private scene: Scene;
@@ -8,7 +8,7 @@ export class DialogBox {
   private typingTimer?: Phaser.Time.TimerEvent;
   public size: { width: number; height: number };
 
-  private continuePrompt: Phaser.GameObjects.Text; // Novo campo
+  private hint: Phaser.GameObjects.Text; // Novo campo
 
   constructor(
     scene: Scene,
@@ -40,7 +40,7 @@ export class DialogBox {
       lineSpacing: 8,
     });
 
-    this.continuePrompt = this.scene.add
+    this.hint = this.scene.add
       .text(0, 0, "[ ESPAÇO para continuar ]", {
         fontFamily: "VT323",
         fontSize: "14px",
@@ -64,6 +64,10 @@ export class DialogBox {
 
   clearText(): void {
     this.textContent.setText("");
+  }
+
+  clearHint(): void {
+    this.setHint(null);
   }
 
   private createBox(): void {
@@ -99,7 +103,7 @@ export class DialogBox {
     );
 
     // Posicionar o prompt na parte inferior interna da caixa
-    this.continuePrompt.setPosition(0, height / 2 - 15);
+    this.hint.setPosition(0, height / 2 - 15);
 
     this.textContent.setOrigin(0, 0);
     this.textContent.setPosition(
@@ -111,7 +115,7 @@ export class DialogBox {
       shadow,
       bg,
       this.textContent,
-      this.continuePrompt,
+      this.hint,
     ]);
 
     // Centraliza na base da tela por padrão
@@ -122,22 +126,22 @@ export class DialogBox {
   }
 
   public setHint(text: string | null): void {
-    if (!this.continuePrompt) return;
+    if (!this.hint) return;
 
     if (text === null) {
-      this.continuePrompt.setVisible(false);
-      this.scene.tweens.killTweensOf(this.continuePrompt);
+      this.hint.setVisible(false);
+      this.scene.tweens.killTweensOf(this.hint);
       return;
     }
 
-    this.continuePrompt.setText(text);
-    this.continuePrompt.setVisible(true);
+    this.hint.setText(text);
+    this.hint.setVisible(true);
 
     // Reinicia o efeito de piscar para o novo texto
-    this.scene.tweens.killTweensOf(this.continuePrompt);
-    this.continuePrompt.alpha = 1;
+    this.scene.tweens.killTweensOf(this.hint);
+    this.hint.alpha = 1;
     this.scene.tweens.add({
-      targets: this.continuePrompt,
+      targets: this.hint,
       alpha: { from: 1, to: 0.3 },
       duration: 800,
       yoyo: true,
@@ -146,19 +150,19 @@ export class DialogBox {
   }
 
   public setContinueVisible(visible: boolean): void {
-    this.continuePrompt.setVisible(visible);
+    this.hint.setVisible(visible);
     if (visible) {
       // Opcional: Adicionar um pequeno efeito de piscar
       this.scene.tweens.add({
-        targets: this.continuePrompt,
+        targets: this.hint,
         alpha: { from: 0.4, to: 1 },
         duration: 800,
         yoyo: true,
         repeat: -1,
       });
     } else {
-      this.scene.tweens.killTweensOf(this.continuePrompt);
-      this.continuePrompt.alpha = 1;
+      this.scene.tweens.killTweensOf(this.hint);
+      this.hint.alpha = 1;
     }
   }
 
@@ -179,8 +183,8 @@ export class DialogBox {
   public show(text: string): void {
     this.stopTyping(); // Garante que qualquer timer interno antigo morra
     this.container.setVisible(true);
-    this.textContent.setText(text)
-    
+    this.textContent.setText(text);
+
     // this.startTyping(text); // Começa vazio para o TextTyper preencher
   }
 
