@@ -1,10 +1,11 @@
 import { Scene } from "phaser";
+import { CursorManager } from "../../../../systems/CursorManager";
 
 export type CareerOption = {
   id: string;
   title: string;
   description: string;
-  icon: string;
+  frame: number;
   color: number;
 };
 
@@ -16,8 +17,8 @@ export class CareerOptions {
   private onSelect: (careerId: string) => void;
   private onHover?: (careerId: string) => void;
   private currentHighlightedIndex: number = 0;
-  private instructionText!: Phaser.GameObjects.Text;
-  private titleText!: Phaser.GameObjects.Text;
+  private careerIcons!: Phaser.GameObjects.Sprite;
+  private cursorManager!: CursorManager;
 
   // Cores no estilo retro
   private readonly COLORS = {
@@ -26,6 +27,11 @@ export class CareerOptions {
     bg: 0x000000,
     border: 0x444444,
     title: 0x00ff00, // Verde para o título
+  };
+
+  private readonly SIZE = {
+    width: 200,
+    height: 90,
   };
 
   constructor(
@@ -38,50 +44,52 @@ export class CareerOptions {
     this.onHover = onHover;
 
     this.careers = this.getCareerOptions();
+
+    this.cursorManager = CursorManager.getInstance();
   }
 
-  private getCareerOptions(): CareerOption[] {
+  getCareerOptions(): CareerOption[] {
     return [
       {
         id: "recruiter",
         title: "RECRUTADOR",
         description: "Encontra talentos e constrói equipes",
-        icon: "👔",
+        frame: 0,
         color: 0x3498db, // Azul
       },
       {
         id: "manager",
         title: "GERENTE",
         description: "Lidera projetos e times",
-        icon: "📊",
+        frame: 1,
         color: 0xe74c3c, // Vermelho
       },
       {
         id: "developer",
         title: "DESENVOLVEDOR",
         description: "Cria sistemas e soluções",
-        icon: "💻",
+        frame: 2,
         color: 0x2ecc71, // Verde
       },
       {
         id: "designer",
         title: "DESIGNER",
         description: "Cria experiências visuais",
-        icon: "🎨",
+        frame: 3,
         color: 0x9b59b6, // Roxo
       },
       {
         id: "analyst",
         title: "ANALISTA",
         description: "Analisa dados e processos",
-        icon: "📈",
+        frame: 4,
         color: 0xf39c12, // Laranja
       },
       {
         id: "entrepreneur",
         title: "EMPREENDEDOR",
         description: "Cria seu próprio caminho",
-        icon: "🚀",
+        frame: 5,
         color: 0x1abc9c, // Turquesa
       },
     ];
@@ -90,14 +98,14 @@ export class CareerOptions {
   public create(): void {
     const centerX = this.scene.scale.width / 2;
     const startY = 200;
-    const spacing = 100;
+    const spacing = 136;
 
     this.optionsContainer = this.scene.add
       .container(0, 0)
       .setDepth(50);
 
     // 1. TÍTULO PRINCIPAL
-    this.createTitle();
+    // this.createTitle();
 
     // 2. Cria cada opção de cargo
     this.careers.forEach((career, index) => {
@@ -112,9 +120,6 @@ export class CareerOptions {
       this.optionsContainer.add(careerOption);
     });
 
-    // 3. Instrução
-    this.createInstruction();
-
     // Destacar a primeira opção inicialmente
     this.highlightOptionByIndex(0);
 
@@ -122,50 +127,28 @@ export class CareerOptions {
     this.setupKeyboardNavigation();
   }
 
-  private createTitle(): void {
-    const centerX = this.scene.scale.width / 2;
+  // private createTitle(): void {
+  //   const centerX = this.scene.scale.width / 2;
 
-    this.titleText = this.scene.add
-      .text(
-        centerX,
-        36, // Posição Y do título
-        "QUAL É SUA ÁREA DE ATUAÇÃO?",
-        {
-          fontSize: "32px",
-          fontFamily: "VT323, monospace",
-          color: this.colorToString(this.COLORS.title),
-          backgroundColor: "rgba(0, 0, 0, 0.7)",
-          padding: { x: 20, y: 10 },
-          align: "center",
-        }
-      )
-      .setOrigin(0.5)
-      .setDepth(51); // Um pouco acima do container
+  //   this.titleText = this.scene.add
+  //     .text(
+  //       centerX,
+  //       36, // Posição Y do título
+  //       "QUAL É SUA ÁREA DE ATUAÇÃO?",
+  //       {
+  //         fontSize: "32px",
+  //         fontFamily: "VT323",
+  //         color: this.colorToString(this.COLORS.title),
+  //         backgroundColor: "rgba(0, 0, 0, 0.7)",
+  //         padding: { x: 20, y: 10 },
+  //         align: "center",
+  //       }
+  //     )
+  //     .setOrigin(0.5)
+  //     .setDepth(51); // Um pouco acima do container
 
-    this.optionsContainer.add(this.titleText);
-  }
-
-  private createInstruction(): void {
-    const centerX = this.scene.scale.width / 2;
-
-    this.instructionText = this.scene.add
-      .text(
-        centerX,
-        this.scene.scale.height - 100,
-        "[ Use SETAS para navegar e ENTER para selecionar ]",
-        {
-          fontSize: "18px",
-          fontFamily: "VT323, monospace",
-          color: this.colorToString(this.COLORS.text),
-          backgroundColor: "rgba(0, 0, 0, 0.6)",
-          padding: { x: 15, y: 8 },
-        }
-      )
-      .setOrigin(0.5)
-      .setDepth(50);
-
-    this.optionsContainer.add(this.instructionText);
-  }
+  //   this.optionsContainer.add(this.titleText);
+  // }
 
   private createCareerOption(
     career: CareerOption,
@@ -175,46 +158,45 @@ export class CareerOptions {
     const container = this.scene.add
       .container(x, y)
       .setDepth(50);
-    const width = 200;
-    const height = 80;
 
     // Fundo
     const bg = this.scene.add.graphics();
     bg.fillStyle(this.COLORS.bg, 0.9);
     bg.fillRoundedRect(
-      -width / 2,
-      -height / 2,
-      width,
-      height,
+      -this.SIZE.width / 2,
+      -this.SIZE.height / 2,
+      this.SIZE.width,
+      this.SIZE.height,
       10
     );
 
     // Borda
     bg.lineStyle(2, this.COLORS.border, 1);
     bg.strokeRoundedRect(
-      -width / 2,
-      -height / 2,
-      width,
-      height,
+      -this.SIZE.width / 2,
+      -this.SIZE.height / 2,
+      this.SIZE.width,
+      this.SIZE.height,
       10
     );
 
     // Ícone
-    const icon = this.scene.add
-      .text(-width / 2 + 25, 0, career.icon, {
-        fontSize: "32px",
-        fontFamily: "VT323, monospace",
-      })
-      .setOrigin(0.5);
+    const icon = this.scene.add.sprite(
+      0,
+      -50,
+      "career_icons",
+      career.frame
+    );
+    icon.setScale(0.25).setOrigin(0.5);
 
     // Título do cargo
     const title = this.scene.add.text(
-      -width / 2 + 60,
-      -15,
+      -this.SIZE.width / 2 + 60,
+      -25, // Subimos de -15 para -25
       career.title,
       {
         fontSize: "18px",
-        fontFamily: "VT323, monospace",
+        fontFamily: "VT323",
         color: this.colorToString(career.color),
         fontStyle: "bold",
       }
@@ -222,14 +204,15 @@ export class CareerOptions {
 
     // Descrição
     const desc = this.scene.add.text(
-      -width / 2 + 60,
-      10,
+      -this.SIZE.width / 2 + 60,
+      2, // Subimos de 10 para 2
       career.description,
       {
         fontSize: "14px",
-        fontFamily: "VT323, monospace",
+        fontFamily: "VT323",
         color: this.colorToString(this.COLORS.text),
-        wordWrap: { width: 120 },
+        wordWrap: { width: 125 }, // Aumentei levemente a largura da quebra
+        lineSpacing: -2, // Aperta um pouco as linhas se necessário
       }
     );
 
@@ -237,10 +220,10 @@ export class CareerOptions {
 
     // Área interativa
     const hitArea = new Phaser.Geom.Rectangle(
-      -width / 2,
-      -height / 2,
-      width,
-      height
+      -this.SIZE.width / 2,
+      -this.SIZE.height / 2,
+      this.SIZE.width,
+      this.SIZE.height
     );
     container.setInteractive(
       hitArea,
@@ -263,6 +246,8 @@ export class CareerOptions {
     });
 
     container.on("pointerout", () => {
+      this.cursorManager.setState("default");
+
       // Não remove destaque se for o item atualmente selecionado por teclado
       if (this.selectedCareer !== career.id) {
         // Apenas remove o destaque se não for o item atualmente destacado por teclado
@@ -305,56 +290,53 @@ export class CareerOptions {
     // Limpa o gráfico
     bg.clear();
 
-    const width = 200;
-    const height = 80;
-
     if (highlight) {
       // Fundo com brilho
       bg.fillStyle(0x000000, 0.95);
       bg.fillRoundedRect(
-        -width / 2,
-        -height / 2,
-        width,
-        height,
+        -this.SIZE.width / 2,
+        -this.SIZE.height / 2,
+        this.SIZE.width,
+        this.SIZE.height,
         10
       );
 
       // Borda neon
       bg.lineStyle(3, color, 1);
       bg.strokeRoundedRect(
-        -width / 2,
-        -height / 2,
-        width,
-        height,
+        -this.SIZE.width / 2,
+        -this.SIZE.height / 2,
+        this.SIZE.width,
+        this.SIZE.height,
         10
       );
 
       // Brilho interno
       bg.lineStyle(1, 0xffffff, 0.5);
       bg.strokeRoundedRect(
-        -width / 2 + 2,
-        -height / 2 + 2,
-        width - 4,
-        height - 4,
+        -this.SIZE.width / 2 + 2,
+        -this.SIZE.height / 2 + 2,
+        this.SIZE.width - 4,
+        this.SIZE.height - 4,
         8
       );
     } else {
       // Normal
       bg.fillStyle(this.COLORS.bg, 0.9);
       bg.fillRoundedRect(
-        -width / 2,
-        -height / 2,
-        width,
-        height,
+        -this.SIZE.width / 2,
+        -this.SIZE.height / 2,
+        this.SIZE.width,
+        this.SIZE.height,
         10
       );
 
       bg.lineStyle(2, this.COLORS.border, 1);
       bg.strokeRoundedRect(
-        -width / 2,
-        -height / 2,
-        width,
-        height,
+        -this.SIZE.width / 2,
+        -this.SIZE.height / 2,
+        this.SIZE.width,
+        this.SIZE.height,
         10
       );
     }
@@ -363,7 +345,7 @@ export class CareerOptions {
   private highlightOptionByIndex(index: number): void {
     // Encontrar o container correspondente ao índice
     // Os containers começam no índice 1 porque o índice 0 é o título
-    const containerIndex = index + 1; // +1 para pular o título
+    const containerIndex = index;
 
     if (
       containerIndex < this.optionsContainer.list.length
@@ -380,7 +362,7 @@ export class CareerOptions {
   }
 
   private removeHighlightFromIndex(index: number): void {
-    const containerIndex = index + 1; // +1 para pular o título
+    const containerIndex = index;
 
     if (
       containerIndex < this.optionsContainer.list.length
@@ -419,7 +401,8 @@ export class CareerOptions {
 
     // Efeito visual em todos os itens
     this.careers.forEach((career, index) => {
-      const containerIndex = index + 1; // +1 para pular o título
+      const containerIndex = index;
+
       if (
         containerIndex < this.optionsContainer.list.length
       ) {
@@ -437,9 +420,6 @@ export class CareerOptions {
         }
       }
     });
-
-    // Atualiza texto de instrução
-    this.instructionText.setText("[ Seleção confirmada! ]");
 
     // Chama callback
     this.onSelect(careerId);

@@ -2,7 +2,7 @@ import { Game, Types } from "phaser";
 import { BootScene } from "./game/scenes/BootScene";
 import { InteriorScene } from "./game/scenes/InteriorScene";
 import { MainScene } from "./game/scenes/MainScene";
-import { UIScene } from "./game/scenes/UiScene";
+import { UIScene } from "./game/scenes/ui/UiScene";
 import "./style.css";
 import { SplashScene } from './game/scenes/SplashScene';
 import { IntroScene } from './game/scenes/intro/IntroScene';

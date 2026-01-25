@@ -108,7 +108,7 @@ export class CodeRainBackground {
     });
   }
 
-  private update(): void {
+  update(): void {
     this.waveTime += 0.05;
 
     // Atualiza cada caractere

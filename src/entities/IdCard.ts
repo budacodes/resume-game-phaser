@@ -1,6 +1,7 @@
 // entities/IdCard.ts
 import Phaser from "phaser";
 import { PlayerGender } from "../game/scenes/intro/types/IntroTypes";
+import { CareerOptions } from "../game/scenes/intro/components/CareerOptions";
 
 export interface IdCardData {
   name: string;
@@ -56,7 +57,11 @@ export class IdCard extends Phaser.GameObjects.Container {
     this.createNameText(config.name);
 
     // 4. TEXTO - CARGO
-    this.createRoleText(config.role!);
+    this.createRoleText(
+      CareerOptions.prototype
+        .getCareerOptions()
+        .find((career) => career.id === config.role!).title
+    );
 
     // 5. TEXTO - ID
     this.createIdText();

@@ -1,7 +1,7 @@
 import { Scene } from "phaser";
 import { Player } from "../../entities/Player";
 import { MapManager } from "../../systems/MapManager";
-import { UIScene } from "./UiScene";
+import { UIScene } from "./ui/UiScene";
 
 export class InteriorScene extends Scene {
   // --- SISTEMAS ---

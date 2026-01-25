@@ -3,7 +3,6 @@ import { CursorManager } from "../../systems/CursorManager";
 import { CodeRainBackground } from "./intro/components/CodeRainBackground";
 
 export class SplashScene extends Scene {
-  private clickToStartText!: Phaser.GameObjects.Text;
   private cursorManager!: CursorManager;
   private codeRainBackground!: CodeRainBackground;
 
@@ -13,20 +12,16 @@ export class SplashScene extends Scene {
 
   create() {
     this.cursorManager = CursorManager.getInstance();
-
-
     this.cursorManager.setState("default");
-
     this.game.events.emit("scene-changed", "SplashScene");
-
-    // Ou desativa o joystick diretamente
     this.game.events.emit("disable-joystick");
 
     const bg = this.add.graphics();
     bg.fillStyle(0x222222, 1);
     bg.fillRect(0, 0, this.scale.width, this.scale.height);
 
-    const title = this.add
+    // TÍTULO
+    this.add
       .text(
         this.scale.width / 2,
         this.scale.height / 2 - 100,
@@ -40,7 +35,8 @@ export class SplashScene extends Scene {
       )
       .setOrigin(0.5);
 
-    const subtitle = this.add
+    // SUBTÍTULO
+    this.add
       .text(
         this.scale.width / 2,
         this.scale.height / 2 - 40,
@@ -54,86 +50,125 @@ export class SplashScene extends Scene {
       )
       .setOrigin(0.5);
 
-    this.clickToStartText = this.add
-      .text(
-        this.scale.width / 2,
-        this.scale.height / 2 + 50,
-        "CLIQUE AQUI PARA INICIAR",
-        {
-          fontFamily: '"VT323"',
-          fontSize: "32px",
-          color: "#ffffff",
-          backgroundColor: "rgba(0, 0, 0, 0.7)",
-          padding: { x: 20, y: 15 },
-          align: "center",
-        }
-      )
-      .setOrigin(0.5)
-      .on("pointerover", () => {
-        this.cursorManager.setState("hover");
-      })
-      .on("pointerout", () => {
-        this.cursorManager.setState("default");
-      });
-
-    this.tweens.add({
-      targets: this.clickToStartText,
-      alpha: { from: 0.5, to: 1 },
-      duration: 1000,
-      yoyo: true,
-      repeat: -1,
-    });
-
     this.codeRainBackground = new CodeRainBackground(this);
     this.codeRainBackground.create();
-    this.setupClickHandler();
+
+    this.createMenuButtons();
   }
 
-  private setupClickHandler() {
-    const button = this.add
-      .rectangle(
-        this.clickToStartText.x -
-          this.clickToStartText.width / 2,
-        this.clickToStartText.y -
-          this.clickToStartText.height / 2,
-        this.clickToStartText.width + 20,
-        this.clickToStartText.height + 15,
-        0x000000,
-        0
-      )
-      .setOrigin(0, 0)
-      .setInteractive();
+  private createMenuButtons() {
+    const { width, height } = this.scale;
+    const centerX = width / 2;
+    const startY = height / 2 + 50;
 
-    button.on("pointerover", () => {
-      this.cursorManager.setState("hover");
-    });
+    // Verifica se existe progresso salvo (ajuste as chaves conforme seu projeto)
+    const hasSave =
+      (localStorage.getItem("player_name") &&
+        localStorage.getItem("player_gender") &&
+        localStorage.getItem("player_career")) ||
+      localStorage.getItem("game_quests_progress");
 
-    button.on("pointerout", () => {
-      this.cursorManager.setState("default");
-    });
+    // BOTÃO: NOVO JOGO
+    this.createButton(
+      centerX,
+      startY,
+      "NOVO JOGO",
+      true,
+      () => {
+        this.startNewGame();
+      }
+    );
 
-    button.on("pointerdown", () => {
-      try {
-        const clickSound = this.sound.add("click_sound", {
-          volume: 0.3,
-        });
-        clickSound.play();
-      } catch (error) {}
+    this.createButton(
+      centerX,
+      startY + 70,
+      "CONTINUAR",
+      !!hasSave,
+      () => {
+        if (hasSave) {
+          this.scene.start("MainScene");
+        } else {
+          return null;
+        }
+      }
+    );
+  }
 
+  private createButton(
+    x: number,
+    y: number,
+    label: string,
+    enabled: boolean,
+    callback: () => void
+  ) {
+    const text = this.add
+      .text(x, y, label, {
+        fontFamily: '"VT323"',
+        fontSize: "32px",
+        color: enabled ? "#ffffff" : "#888888",
+        backgroundColor: enabled ? "#000000" : "#333333",
+        padding: { x: 20, y: 15 },
+        align: "center",
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: false });
+
+    if (enabled) {
       this.tweens.add({
-        targets: [this.clickToStartText],
-        alpha: 0,
-        scale: 1.5,
-        duration: 300,
-        onComplete: () => {
-          this.scene.start("IntroScene");
-        },
+        targets: text,
+        alpha: { from: 0.6, to: 1 },
+        duration: 1000,
+        yoyo: true,
+        repeat: -1,
       });
+
+      text.on("pointerdown", () => {
+        this.tweens.add({
+          targets: text,
+          alpha: 0,
+          scale: 1.2,
+          duration: 200,
+          onComplete: callback,
+        });
+      });
+    }
+
+    text.on("pointerover", () => {
+      this.cursorManager.setState("hover");
+
+      if (enabled) {
+        text.setTint(0xf39c12); // Feedback visual ao passar o mouse
+      }
     });
 
-    // this.input.keyboard?.once("keydown", () => {
-    //   this.scene.start("IntroScene");
+    text.on("pointerout", () => {
+      this.cursorManager.setState("default");
+
+      if (enabled) {
+        text.clearTint();
+      }
+    });
+  }
+
+  private startNewGame() {
+    // Limpa dados de persistência (Nome, Gênero, Quests, etc)
+    // Se você usa o SettingsManager para volumes, cuidado para não apagar 'settings'
+    const keysToClear = [
+      "player_name",
+      "player_gender",
+      "game_quests_progress",
+      "current_career",
+    ];
+    keysToClear.forEach((key) =>
+      localStorage.removeItem(key)
+    );
+
+    // Opcional: Se quiser resetar TUDO exceto volume:
+    // Object.keys(localStorage).forEach(key => {
+    //   if(key !== 'game_settings') localStorage.removeItem(key);
     // });
+
+    this.scene.start("IntroScene");
   }
 
   update() {}

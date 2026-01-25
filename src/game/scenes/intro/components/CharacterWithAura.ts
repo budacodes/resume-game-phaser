@@ -113,18 +113,33 @@ export class CharacterWithAura {
 
   updateGender(gender: PlayerGender): void {
     const spriteKey = `${gender}-run`;
+    const animationKey = `${gender}-running-down`;
 
-    // Atualiza texturas
+    // 1. Verificação de segurança: se já for esse gênero e a animação já estiver tocando, ignore.
+    if (
+      this.characterSprite.texture.key === spriteKey &&
+      this.characterSprite.anims.currentAnim?.key ===
+        animationKey
+    ) {
+      return;
+    }
+
+    // 2. Garante que a animação exista antes de trocar
+    if (!this.scene.anims.exists(animationKey)) {
+      this.createIdleDownAnimation(spriteKey, animationKey);
+    }
+
+    // 3. Atualiza todos os sprites (incluindo as auras)
     this.container.each(
       (child: Phaser.GameObjects.GameObject) => {
         if (child instanceof Phaser.GameObjects.Sprite) {
+          // Paramos a animação atual para não haver conflito de frames
+          child.anims.stop();
           child.setTexture(spriteKey);
+          child.play(animationKey, true);
         }
       }
     );
-
-    // Atualiza animação
-    this.setupAnimations(gender);
   }
 
   fadeOut(): void {

@@ -1,7 +1,8 @@
 import { Scene } from "phaser";
-import { UIScene } from "./UiScene";
 import { Player } from "../../entities/Player";
+import { CursorManager } from "../../systems/CursorManager";
 import { MapManager } from "../../systems/MapManager";
+import { UIScene } from "./ui/UiScene";
 
 export class MainScene extends Scene {
   private player!: Player;
@@ -29,7 +30,6 @@ export class MainScene extends Scene {
     | "down"
     | "right"
     | "left" = "down";
-  private isIntro: boolean = false;
 
   private refuseCount: number = 0;
   private isPlayerReady: boolean = false;
@@ -50,8 +50,6 @@ export class MainScene extends Scene {
     this.mapManager = new MapManager(this);
     this.mapManager.init("hub");
 
-    this.scene.launch("UIScene");
-
     this.game.events.emit("scene-changed", "MainScene");
 
     this.game.events.emit("enable-joystick");
@@ -65,7 +63,18 @@ export class MainScene extends Scene {
       this.createInteractionZones();
       this.initAudioAndInputs();
       this.isPlayerReady = true;
-      this.setupIntro();
+    });
+
+    const cursor = CursorManager.getInstance();
+    cursor.setState("default");
+
+    this.game.events.on("dialog-started", () => {
+      this.isReading = true;
+    });
+
+    this.game.events.on("dialog-finished", () => {
+      this.isReading = false;
+      this.isQuestionMode = false;
     });
   }
 
@@ -110,37 +119,9 @@ export class MainScene extends Scene {
     );
   }
 
-  private setupIntro() {
-    const hasSeenIntro = this.registry.get("hasSeenIntro");
-
-    if (!hasSeenIntro) {
-      this.time.delayedCall(1000, () => {
-        this.isReading = true;
-        this.isQuestionMode = true;
-        this.isIntro = true;
-
-        const playerName =
-          this.registry.get("playerName") || "Bob";
-
-        this.game.events.emit(
-          "show-dialog",
-          `SISTEMA: LOGIN EFETUADO COM SUCESSO!\n\n` +
-            `Bem-vindo ao Hub Central, ${playerName}.\n\n` +
-            `Este mundo virtual é uma representação interativa da minha carreira. ` +
-            `Cada prédio aqui conecta a um projeto ou habilidade diferente.\n\n` +
-            `Sinta-se livre para explorar, coletar referências e... se achar algum bug, considere uma "feature" não documentada.\n\n` +
-            `Está pronto para começar?\n\n` +
-            `[Y] Sim [N] Não`,
-          280,
-          400
-        );
-
-        this.registry.set("hasSeenIntro", true);
-      });
-    }
-  }
-
   update() {
+    console.log("isReading:", this.isReading);
+
     if (!this.isPlayerReady) return;
 
     if (this.isQuestionMode) {
@@ -150,11 +131,11 @@ export class MainScene extends Scene {
 
     if (this.isReading) {
       this.player.stopMovement();
-      this.handleDialogInput();
     } else {
       if (this.player) {
         this.player.update();
       }
+
       this.handleInteractions();
     }
   }
@@ -348,80 +329,34 @@ export class MainScene extends Scene {
   private handleDialogInteraction(data: any) {
     const msg =
       this.getTiledProperty(data, "message") || "...";
-    this.isReading = true;
+    this.game.events.emit("dialog-started");
     this.game.events.emit("show-dialog", msg);
   }
 
   private handleFountainInteraction() {
     this.isQuestionMode = true;
-    this.isReading = true;
+    this.game.events.emit("dialog-started");
     this.game.events.emit(
       "show-dialog",
       "A fonte emite uma aura estranha...\nDeseja jogar uma moeda?\n\n[Y] Sim [N] Não"
     );
   }
 
-  private handleDialogInput() {
-    if (Phaser.Input.Keyboard.JustDown(this.keyE)) {
-      this.isReading = false;
-      this.game.events.emit("hide-dialog");
-    }
-  }
-
   private handleQuestionInput() {
     if (Phaser.Input.Keyboard.JustDown(this.keyY)) {
-      if (this.isIntro) {
-        this.game.events.emit("hide-dialog");
-        this.isQuestionMode = false;
-        this.isReading = false;
-        this.isIntro = false;
-      } else {
-        this.coinSound.play();
-        setTimeout(() => {
-          this.waterDropSound.play();
-        }, 400);
+      this.coinSound.play();
+      setTimeout(() => this.waterDropSound.play(), 400);
 
-        this.game.events.emit(
-          "show-dialog",
-          "Você fez um pedido silencioso..."
-        );
-        this.isQuestionMode = false;
-      }
-    } else if (Phaser.Input.Keyboard.JustDown(this.keyN)) {
-      const playerName =
-        this.registry.get("playerName") || "Bob";
+      this.game.events.emit(
+        "show-dialog",
+        "Você fez um pedido silencioso..."
+      );
 
-      if (this.isIntro) {
-        if (this.refuseCount > 5) {
-          this.game.events.emit(
-            "show-dialog",
-            "OK, você venceu...",
-            80,
-            300
-          );
+      // this.dialogBox.setHint("[ ESPAÇO para continuar ]");
+    }
 
-          setTimeout(() => {
-            window.location.href =
-              "https://github.com/budacodes";
-          }, 3000);
-        } else {
-          this.refuseCount++;
-
-          this.game.events.emit(
-            "show-dialog",
-            `(${playerName}, vamo lá... me ajuda aqui... não estraga a imersão...)\n\n` +
-              `Está pronto para começar?\n\n` +
-              `[Y] Sim [N] Não`,
-            120,
-            300
-          );
-        }
-      } else {
-        this.game.events.emit("hide-dialog");
-        this.isQuestionMode = false;
-        this.isReading = false;
-        this.isIntro = false;
-      }
+    if (Phaser.Input.Keyboard.JustDown(this.keyN)) {
+      this.game.events.emit("hide-dialog");
     }
   }
 

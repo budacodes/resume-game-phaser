@@ -8,17 +8,22 @@ export type PlayerCareer =
   | "entrepreneur";
 
 export interface IntroStep {
-    id: number;
-    text: string;
-    type?: 'dialog' | 'name-input' | 'gender-select' | 'career-select' | 'idcard-show';
-    action?: () => void; // Ação opcional para o passo
+  id: number;
+  text: string;
+  type?:
+    | "dialog"
+    | "name-input"
+    | "gender-select"
+    | "career-select"
+    | "idcard-show";
+  action?: () => void; // Ação opcional para o passo
 }
 
 export interface PlayerData {
-    name: string;
-    gender: PlayerGender;
-    career: PlayerCareer;
-    faceTexture: string;
+  name: string;
+  gender: PlayerGender;
+  career: PlayerCareer;
+  faceTexture: string;
 }
 
 export interface GenderOption {
@@ -43,23 +48,24 @@ export interface IntroConfig {
     nonbinary: number;
     error: number;
     success: number;
+    title: number;
   };
   fonts: {
     title: {
       fontFamily: string;
-      fontSize: string;
+      fontSize: number;
     };
     dialog: {
       fontFamily: string;
-      fontSize: string;
+      fontSize: number;
     };
     input: {
       fontFamily: string;
-      fontSize: string;
+      fontSize: number;
     };
     small: {
       fontFamily: string;
-      fontSize: string;
+      fontSize: number;
     };
   };
 }

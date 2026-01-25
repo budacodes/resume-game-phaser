@@ -1,24 +1,25 @@
+// scenes/IntroScene.ts
 import { Scene } from "phaser";
-import { Building } from "../../../entities/Building";
 import {
   IdCard,
   IdCardData,
 } from "../../../entities/IdCard";
 import { Planet } from "../../../entities/Planet";
+import { AudioManager } from "../../../managers/AudioManager";
+import { SettingsManager } from "../../../managers/SettingsManager";
+import { TextManager } from "../../../managers/TextManager";
 import { CursorManager } from "../../../systems/CursorManager";
-import { UIScene } from "../UiScene";
+import { SettingsMenu } from "../ui/components/SettingsMenu";
+import { UIScene } from "../ui/UiScene";
 import { CareerOptions } from "./components/CareerOptions";
 import { CharacterWithAura } from "./components/CharacterWithAura";
 import { CodeRainBackground } from "./components/CodeRainBackground";
-import { DialogBox } from "./components/DialogBpx";
+import { DialogBox } from "../../ui/_DialogBox";
 import { FaceFrame } from "./components/FaceFrame";
 import { GenderOptions } from "./components/GenderOptions";
 import { NameInput } from "./components/NameInput";
 import { INTRO_CONFIG } from "./config/IntroConfig";
-import {
-  INTRO_STEPS,
-  getWelcomePronoun,
-} from "./config/IntroSteps";
+import { INTRO_STEPS } from "./config/IntroSteps";
 import { AudioSystem } from "./systems/AudioSystem";
 import { InputSystem } from "./systems/InputSystem";
 import { TextTyper } from "./systems/TextTyper";
@@ -26,6 +27,7 @@ import {
   PlayerCareer,
   PlayerGender,
 } from "./types/IntroTypes";
+import { BudaDog } from "../../../entities/BudaDog";
 
 export class IntroScene extends Scene {
   private currentStep = 0;
@@ -39,6 +41,12 @@ export class IntroScene extends Scene {
   private inputSystem!: InputSystem;
   private textTyper!: TextTyper;
 
+  // Managers
+  private settingsManager!: SettingsManager;
+  private audioManager!: AudioManager;
+  private textManager!: TextManager;
+  private settingsMenu!: SettingsMenu;
+
   // Components
   private codeRainBackground!: CodeRainBackground;
   private dialogBox!: DialogBox;
@@ -50,12 +58,10 @@ export class IntroScene extends Scene {
   // Game Objects
   private budaSprite!: Phaser.GameObjects.Sprite;
   private continuePrompt!: Phaser.GameObjects.Text;
-  protected genderTitleText!: Phaser.GameObjects.Text;
-
-  private cursorManager!: CursorManager;
+  protected titleText!: Phaser.GameObjects.Text;
 
   private planet!: Planet;
-  private building!: Building;
+  private budaDog!: BudaDog;
 
   private idCard!: IdCard;
 
@@ -63,6 +69,10 @@ export class IntroScene extends Scene {
   private playerCareer: PlayerCareer | null = null;
 
   private uiScene!: UIScene;
+
+  // UI Elements
+  private settingsButton!: Phaser.GameObjects.Text;
+  private questLogButton!: Phaser.GameObjects.Text;
 
   constructor() {
     super("IntroScene");
@@ -73,36 +83,8 @@ export class IntroScene extends Scene {
     bg.fillStyle(0x222222, 1);
     bg.fillRect(0, 0, this.scale.width, this.scale.height);
 
-    // CRÍTICO: Obtém a instância do CursorManager
-    this.cursorManager = CursorManager.getInstance();
-
-    // PRIMEIRO: Desativa completamente o cursor do sistema
-    this.input.setDefaultCursor("none");
-
-    // Remove qualquer cursor CSS que possa estar atrapalhando
-    this.forceHideSystemCursor();
-
-    // SEGUNDO: Verifica se o CursorManager já foi inicializado
-    if (!this.cursorManager.getCurrentScene()) {
-      // Se não foi inicializado, inicializa com esta cena
-      this.cursorManager.initialize(this);
-    } else {
-      // Se já foi inicializado, apenas atualiza a cena
-      this.cursorManager.updateScene(this);
-    }
-
-    // TERCEIRO: Garante que o cursor customizado está ativo e visível
-    this.cursorManager.setCustomCursorEnabled(true);
-    this.cursorManager.setState("default");
-    this.cursorManager.showCursor();
-
-    // QUARTO: Corrige conflitos de cursor
-    this.cursorManager.fixCursorConflict();
-
-    console.log(
-      "IntroScene - Estado do cursor:",
-      this.cursorManager.getState()
-    );
+    // Inicializa Managers
+    this.initializeManagers();
 
     // Desativa eventos de joystick
     this.game.events.emit("scene-changed", "IntroScene");
@@ -111,45 +93,223 @@ export class IntroScene extends Scene {
     this.initializeSystems();
     this.initializeComponents();
     this.createBudaSprite();
-    this.createContinuePrompt();
     this.startIntroduction();
 
-    // Adiciona interação com o fundo (opcional)
+    // Configura atalhos de teclado
+    this.setupKeyboardShortcuts();
+
+    // Adiciona interação com o fundo
     this.setupBackgroundInteraction();
   }
 
-  private forceHideSystemCursor(): void {
-    // Método mais agressivo para garantir que o cursor do sistema fique escondido
-    this.input.setDefaultCursor("none");
-
-    // No HTML também
-    document.body.style.cursor = "none";
-
-    // Remove qualquer estilo anterior
-    const existingStyle = document.getElementById(
-      "cursor-fix-style"
+  private initializeManagers(): void {
+    // Inicializa SettingsManager
+    this.settingsManager = SettingsManager.getInstance(
+      this.game
     );
-    if (existingStyle) {
-      existingStyle.remove();
+
+    // Cria AudioManager
+    this.audioManager = new AudioManager(this);
+
+    // Cria TextManager
+    this.textManager = new TextManager(this);
+
+    // Cria SettingsMenu (o mesmo usado em outras cenas)
+    this.settingsMenu = new SettingsMenu(this);
+  }
+
+  private setupKeyboardShortcuts(): void {
+    // ESC: Abre/fecha configurações
+    this.input.keyboard?.on(
+      "keydown-ESC",
+      (event: KeyboardEvent) => {
+        event.preventDefault();
+        this.toggleSettingsMenu();
+      }
+    );
+
+    // F11: Alterna tela cheia
+    this.input.keyboard?.on(
+      "keydown-F11",
+      (event: KeyboardEvent) => {
+        event.preventDefault();
+        this.toggleFullscreen();
+      }
+    );
+
+    // P: Pausa/Continua (para debug)
+    this.input.keyboard?.on(
+      "keydown-P",
+      (event: KeyboardEvent) => {
+        event.preventDefault();
+        this.togglePause();
+      }
+    );
+  }
+
+  private toggleSettingsMenu(): void {
+    // Alterna o menu de configurações
+    this.settingsMenu.toggle();
+
+    // Se o menu abriu, pausa a intro
+    if (this.isSettingsMenuOpen()) {
+      this.pauseIntro();
+    } else {
+      this.resumeIntro();
     }
 
-    // Adiciona estilo para forçar cursor none em todos os elementos
-    const style = document.createElement("style");
-    style.id = "cursor-fix-style";
-    style.innerHTML = `
-      * {
-        cursor: none !important;
-      }
-      
-      canvas {
-        cursor: none !important;
-      }
-      
-      body {
-        cursor: none !important;
-      }
-    `;
-    document.head.appendChild(style);
+    // Toca som apropriado
+    // const soundName = this.isSettingsMenuOpen()
+    //   ? "snd_open"
+    //   : "snd_close";
+    // this.audioManager.playSFX(soundName);
+  }
+
+  private isSettingsMenuOpen(): boolean {
+    // Verifica se o menu está visível (você pode precisar adicionar um getter no SettingsMenu)
+    // Se o SettingsMenu não tiver um método para verificar, podemos manter um estado local
+    return (this.settingsMenu as any).isVisible === true;
+  }
+
+  private toggleFullscreen(): void {
+    const currentFullscreen =
+      this.settingsManager.getSettings().fullscreen;
+    const newFullscreen = !currentFullscreen;
+
+    // Atualiza configurações
+    this.settingsManager.updateSettings({
+      fullscreen: newFullscreen,
+    });
+
+    // Feedback visual
+    this.showFullscreenFeedback(newFullscreen);
+
+    // Toca som de feedback
+    // this.audioManager.playSFX(
+    //   newFullscreen ? "snd_confirm" : "snd_cancel"
+    // );
+  }
+
+  private showFullscreenFeedback(
+    isFullscreen: boolean
+  ): void {
+    const message = isFullscreen
+      ? "TELA CHEIA ATIVADA"
+      : "TELA CHEIA DESATIVADA";
+    const color = isFullscreen ? "#4caf50" : "#ff5555";
+
+    const feedback = this.textManager
+      .createText(this.scale.width / 2, 80, message, {
+        fontSize: "24px",
+        fontFamily: "'VT323'",
+        color: color,
+        backgroundColor: "rgba(0, 0, 0, 0.8)",
+        padding: { x: 20, y: 10 },
+        stroke: "#000000",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5);
+
+    feedback.setDepth(1000);
+
+    // Animação de entrada e saída
+    this.tweens.add({
+      targets: feedback,
+      y: 60,
+      alpha: 1,
+      duration: 300,
+      ease: "Power2.out",
+      onComplete: () => {
+        this.tweens.add({
+          targets: feedback,
+          alpha: 0,
+          y: 40,
+          delay: 1000,
+          duration: 500,
+          ease: "Power2.in",
+          onComplete: () => {
+            feedback.destroy();
+          },
+        });
+      },
+    });
+  }
+
+  private togglePause(): void {
+    // Alterna pausa (útil para debug)
+    if (this.scene.isPaused()) {
+      this.scene.resume();
+      this.showPauseFeedback("JOGO CONTINUADO");
+    } else {
+      this.scene.pause();
+      this.showPauseFeedback("JOGO PAUSADO");
+    }
+  }
+
+  private showPauseFeedback(message: string): void {
+    const feedback = this.textManager
+      .createText(
+        this.scale.width / 2,
+        this.scale.height / 2,
+        message,
+        {
+          fontSize: "36px",
+          fontFamily: "'VT323'",
+          color: "#ff9900",
+          backgroundColor: "rgba(0, 0, 0, 0.8)",
+          padding: { x: 30, y: 15 },
+          stroke: "#000000",
+          strokeThickness: 4,
+        }
+      )
+      .setOrigin(0.5);
+
+    feedback.setDepth(1000);
+
+    this.tweens.add({
+      targets: feedback,
+      alpha: 0,
+      scale: 1.2,
+      delay: 1000,
+      duration: 500,
+      ease: "Power2.in",
+      onComplete: () => {
+        feedback.destroy();
+      },
+    });
+  }
+
+  private pauseIntro(): void {
+    // Pausa elementos da intro quando o menu está aberto
+    if (this.textTyper && this.textTyper.typing) {
+      this.textTyper.pause();
+    }
+
+    // Desativa continuação
+    this.canContinue = false;
+    this.dialogBox.setHint("[ ESPAÇO para continuar ]");
+
+    // Pausa animações
+    this.tweens.pauseAll();
+  }
+
+  private resumeIntro(): void {
+    // Retoma elementos da intro quando o menu fecha
+    if (this.textTyper && this.textTyper.paused) {
+      this.textTyper.resume();
+    }
+
+    // Reativa continuação se apropriado
+    if (
+      this.currentStep < INTRO_STEPS.length &&
+      !this.nameInputActive
+    ) {
+      this.dialogBox.setContinueVisible(true);
+      this.canContinue = true;
+    }
+
+    // Retoma animações
+    this.tweens.resumeAll();
   }
 
   private initializeSystems(): void {
@@ -166,10 +326,7 @@ export class IntroScene extends Scene {
     this.codeRainBackground = new CodeRainBackground(this);
     this.codeRainBackground.create();
 
-    this.dialogBox = new DialogBox(this, {
-      width: 550,
-      height: 150,
-    });
+    this.dialogBox = new DialogBox(this, 550, 150);
 
     this.characterWithAura = new CharacterWithAura(
       this,
@@ -181,8 +338,8 @@ export class IntroScene extends Scene {
 
     this.planet = new Planet(this, 0, 0, "planet");
     this.planet.setAlpha(0);
-    this.building = new Building(this, 0, 0, "building");
-    this.building.setAlpha(0);
+    this.budaDog = new BudaDog(this, 0, 0, "buda_dog");
+    this.budaDog.setAlpha(0);
   }
 
   private setupBackgroundInteraction(): void {
@@ -203,12 +360,6 @@ export class IntroScene extends Scene {
             pointer.x,
             pointer.y
           );
-        }
-
-        // IMPORTANTE: Atualiza a posição do cursor customizado
-        if (this.cursorManager.isCustomCursorActive()) {
-          // O próprio CursorManager já cuida disso, mas garantimos
-          this.cursorManager.showCursor();
         }
       }
     );
@@ -239,36 +390,12 @@ export class IntroScene extends Scene {
     }, 100);
   }
 
-  private createContinuePrompt(): void {
-    this.continuePrompt = this.add
-      .text(
-        this.scale.width / 2,
-        this.scale.height - 35,
-        "[ ESPAÇO para continuar ]",
-        {
-          ...INTRO_CONFIG.fonts.small,
-          color: this.convertColorToString(
-            INTRO_CONFIG.colors.highlight
-          ),
-          backgroundColor: "rgba(0, 0, 0, 0.7)",
-          padding: { x: 20, y: 10 },
-        }
-      )
-      .setOrigin(0.5)
-      .setVisible(false)
-      .setDepth(101);
-
-    this.tweens.add({
-      targets: this.continuePrompt,
-      alpha: { from: 0.5, to: 1 },
-      duration: 1000,
-      yoyo: true,
-      repeat: -1,
-      paused: true,
-    });
-  }
-
   private startIntroduction(): void {
+    // Toca música de fundo
+    this.audioManager.playMusic("intro_music", {
+      volume: 1,
+    });
+
     this.currentStep = 0;
     this.time.delayedCall(1000, () => {
       this.showStep();
@@ -276,14 +403,13 @@ export class IntroScene extends Scene {
   }
 
   private showStep(): void {
+    if (this.isSettingsMenuOpen()) return;
+
     this.canContinue = false;
     this.inputSystem.removeAllListeners();
 
-    // Reseta o cursor para estado padrão a cada step
-    this.cursorManager.setState("default");
-
     switch (this.currentStep) {
-      case 0:
+      case 0: // Planeta
         this.planet.show(
           0.5,
           1,
@@ -296,76 +422,78 @@ export class IntroScene extends Scene {
         );
         this.showText(INTRO_STEPS[0].text);
         break;
-      case 1:
+
+      case 1: // Prédio
         this.planet.hide(0);
-        this.building.show(
+
+        this.budaDog.show(
+          0.25,
           0.5,
-          1,
           this.scale.width / 2,
           this.scale.height -
             this.dialogBox.size.height -
-            this.planet.height / 2 -
-            100,
+            this.budaDog.height / 2,
           1
         );
         this.showText(INTRO_STEPS[1].text);
         break;
-      case 2:
-        this.building.hide(0);
+
+      case 2: // Nome
+        this.budaDog.hide(0);
         this.showText(INTRO_STEPS[2].text);
         break;
-      case 3:
+
+      case 3: // Gênero
         this.showText(INTRO_STEPS[3].text);
+        this.titleText?.destroy();
         break;
-      case 4: // Após seleção de gênero
-        this.faceFrame.destroy();
-        this.genderOptions.destroy();
+
+      case 4: // Cargo (Apenas a pergunta)
+        // Limpa elementos da seleção de gênero anterior
+        this.faceFrame.hideAll();
+        this.genderOptions?.destroy();
         this.characterWithAura.destroy();
-        this.genderTitleText.destroy();
-        const genderText = `Perfeito! Agora, conte-nos sobre sua carreira.`;
-        this.showText(genderText);
+        this.titleText?.destroy();
+
+        this.showText(INTRO_STEPS[4].text);
         break;
-      case 5: // Seleção de cargo
-        this.showCareerSelection();
+
+      case 5: // "Conexão estabelecida! Gerando sua chave..."
+        this.titleText?.destroy();
+        this.showText(INTRO_STEPS[5].text);
         break;
-      case 6:
-        this.time.delayedCall(1000, () => {
-          this.createPlayerIdCard();
+
+      case 6: // MOSTRAR O CARTÃO + MENSAGEM FINAL
+        this.dialogBox.clearText();
+        this.dialogBox.setHint("");
+
+        this.createPlayerIdCard(); // O cartão aparece aqui
+
+        this.time.delayedCall(2000, () => {
+          this.showText(
+            `Protocolos de acesso finalizados. A simulação está pronta para você, ${this.registry.get(
+              "playerName"
+            )}.\nIniciando sequência de boot... Aproveite a jornada!`
+          );
         });
-        const welcomeText = `Seja ${getWelcomePronoun(
-          this.playerGender
-        )}, ${
-          this.playerName
-        }!\nSeu crachá está pronto. Explore e descubra minha jornada!`;
-        this.showText(welcomeText);
         break;
-      case 7:
-        if (this.idCard) {
-          this.tweens.add({
-            targets: this.idCard,
-            scale: 1.2,
-            alpha: 0,
-            duration: 1000,
-            ease: "Power3.out",
-          });
-        }
+
+      case 7: // Finalização real (transição para MainScene)
         this.completeIntroduction();
         break;
     }
   }
 
   private showCareerSelection(): void {
-    this.continuePrompt.setVisible(false);
-    this.canContinue = false;
+    this.createTitle("Selecione seu cargo");
 
-    // Remove listeners de continuação
+    this.dialogBox.setHint(
+      "[ Use SETAS para navegar e ENTER para selecionar ]"
+    );
+    this.canContinue = false;
     this.inputSystem.removeAllListeners();
 
-    // Garante que o cursor está configurado corretamente
-    this.cursorManager.setState("default");
-    this.cursorManager.showCursor();
-
-    // Resetar estado de seleção
+    // Resetar seleção
     this.playerCareer = null;
 
     // Cria opções de carreira
@@ -380,18 +508,21 @@ export class IntroScene extends Scene {
   }
 
   private onCareerHover(careerId: string): void {
-    // Efeito visual/sonoro ao passar o mouse
-    this.audio.playSelect();
-
-    // IMPORTANTE: Atualiza o cursor para estado "hover"
-    this.cursorManager.setState("hover");
+    // Efeito sonoro
+    this.audioManager.playSFX("snd_select");
   }
 
   private selectCareer(career: PlayerCareer): void {
-    if (this.playerCareer !== null) return; // Evitar seleções múltiplas
+    if (this.playerCareer !== null) return;
 
     this.playerCareer = career;
-    this.audio.playConfirm();
+    this.registry.set("playerCareer", this.playerCareer);
+    localStorage.setItem(
+      "player_career",
+      JSON.stringify(this.playerCareer)
+    );
+
+    this.audioManager.playSFX("snd_confirm");
 
     // Efeito visual
     this.codeRainBackground.createMatrixEffect(
@@ -399,34 +530,16 @@ export class IntroScene extends Scene {
       320
     );
 
-    // Limpa e avança após delay
+    // Limpa e avança
     this.time.delayedCall(1000, () => {
       this.careerOptions.destroy();
-      this.currentStep = 6;
+      this.currentStep = 5;
       this.showStep();
     });
   }
 
-  private getCareerWelcomeText(): string {
-    const careerTitles = {
-      recruiter: "Recrutador(a) de Talentos",
-      manager: "Gerente de Projetos",
-      developer: "Desenvolvedor(a)",
-      designer: "Designer Criativo(a)",
-      analyst: "Analista de Sistemas",
-      entrepreneur: "Empreendedor(a) Visionário(a)",
-    };
-
-    return (
-      careerTitles[this.playerCareer!] || "Profissional"
-    );
-  }
-
   private createPlayerIdCard(): void {
-    // A textura do rosto segue o padrão do FaceFrame
     const faceTexture = `${this.playerGender}-face`;
-
-    // Dados para o IdCard
     const idCardData: IdCardData = {
       name: this.playerName,
       gender: this.playerGender,
@@ -434,64 +547,102 @@ export class IntroScene extends Scene {
       role: this.playerCareer,
     };
 
-    // Posiciona o IdCard
     const x = this.scale.width / 2;
     const y = this.scale.height / 2;
 
-    // Cria o IdCard
     this.idCard = new IdCard(this, x, y, idCardData);
-
-    // Animação de entrada
     this.idCard.show();
-
-    // Torna interativo
     this.idCard.makeInteractive();
 
-    // Efeito de validação após 1 segundo
     this.time.delayedCall(1000, () => {
       this.idCard.playValidationEffect();
     });
 
-    // Move o prompt de continuação para baixo do IdCard
-    this.continuePrompt.setY(this.scale.height - 80);
+    // this.continuePrompt.setY(this.scale.height - 80);
   }
 
   private showText(message: string): void {
-    this.dialogBox.show();
-    this.dialogBox.clearText();
-    this.continuePrompt.setVisible(false);
+    // 1. Mata qualquer processo de digitação que ainda esteja rodando
+    this.textTyper.stop();
 
+    // 2. Limpa o texto fisicamente no componente
+    if (this.dialogBox["textContent"]) {
+      (
+        this.dialogBox[
+          "textContent"
+        ] as Phaser.GameObjects.Text
+      ).setText("");
+    }
+    this.dialogBox.clearText();
+
+    this.dialogBox.show(message);
+    this.dialogBox.setHint("");
     this.budaSprite.setTexture("buda-talking");
 
+    // 3. Inicia a nova digitação
     this.textTyper.typeText(
-      this.dialogBox["textContent"], // Acessando membro privado via index
+      this.dialogBox["textContent"],
       message,
       () => {
-        this.setupContinuePrompt();
         this.budaSprite.setTexture("buda-idle");
+        this.setupContinuePrompt();
       }
     );
+
+    this.setupSkipLogic();
+  }
+
+  private setupSkipLogic(): void {
+    this.inputSystem.removeAllListeners();
+
+    const handleInput = () => {
+      if (this.isSettingsMenuOpen()) return;
+
+      if (this.textTyper && this.textTyper.typing) {
+        // skipTyping agora chama o callback internamente e limpa tudo
+        this.textTyper.skipTyping();
+        this.budaSprite.setTexture("buda-idle");
+
+        // Pequeno delay para evitar que o clique do skip avance o step
+        this.time.delayedCall(50, () => {
+          this.setupContinuePrompt();
+        });
+      }
+    };
+
+    this.inputSystem.onContinue(handleInput);
   }
 
   private setupContinuePrompt(): void {
+    // Não ativa se menu de configurações estiver aberto
+    if (this.isSettingsMenuOpen()) return;
+
+    this.inputSystem.removeAllListeners();
+
     this.canContinue = true;
-    this.continuePrompt.setVisible(true);
-    this.tweens.resumeAll();
+
+    this.dialogBox.setHint("[ ESPAÇO para continuar ]");
 
     const advance = () => {
-      if (this.canContinue && !this.textTyper.typing) {
-        this.currentStep++;
+      if (this.textTyper.typing) return;
 
-        if (this.currentStep === 3) {
+      if (this.canContinue && !this.isSettingsMenuOpen()) {
+        if (this.currentStep === 2) {
           this.showNameInput();
           return;
         }
 
-        if (this.currentStep === 4) {
+        if (this.currentStep === 3) {
           this.showGenderSelection();
           return;
         }
 
+        if (this.currentStep === 4) {
+          this.showCareerSelection(); // Abre os cards após o espaço no Step 4
+          return;
+        }
+
+        this.currentStep++;
         this.showStep();
       }
     };
@@ -500,19 +651,25 @@ export class IntroScene extends Scene {
   }
 
   private showNameInput(): void {
-    this.continuePrompt.setVisible(false);
+    // Não mostra input se menu estiver aberto
+    if (this.isSettingsMenuOpen()) return;
+
+    this.createTitle("Digite seu nome");
+
+    this.dialogBox.setHint("[ ESPAÇO para continuar ]");
     this.canContinue = false;
     this.nameInputActive = true;
 
-    // Remove listeners de continuação
     this.inputSystem.removeAllListeners();
-
-    // IMPORTANTE: Muda cursor para texto durante input
-    this.cursorManager.setState("text");
 
     this.nameInput = new NameInput(this, (name: string) => {
       this.playerName = name.toUpperCase();
-      this.audio.playConfirm();
+      this.audioManager.playSFX("snd_confirm");
+      this.registry.set("playerName", this.playerName);
+      localStorage.setItem(
+        "player_name",
+        JSON.stringify(this.playerName)
+      );
 
       this.codeRainBackground.createMatrixEffect(
         this.scale.width / 2,
@@ -522,11 +679,13 @@ export class IntroScene extends Scene {
       this.time.delayedCall(800, () => {
         this.nameInput?.destroy();
         this.nameInput = null;
+
+        this.input.keyboard?.resetKeys();
+        this.game.canvas.focus();
+        this.input.manager.enabled = true;
+
         this.currentStep = 3;
         this.showStep();
-
-        // Volta para cursor padrão após input
-        this.cursorManager.setState("default");
       });
     });
 
@@ -534,23 +693,20 @@ export class IntroScene extends Scene {
   }
 
   private showGenderSelection(): void {
-    this.continuePrompt.setVisible(false);
-    this.canContinue = false;
+    // Não mostra se menu estiver aberto
+    if (this.isSettingsMenuOpen()) return;
 
-    // Remove listeners de continuação
+    this.dialogBox.setHint("[ ESPAÇO para continuar ]");
+    this.canContinue = false;
     this.inputSystem.removeAllListeners();
 
-    // Configura cursor para seleção
-    this.cursorManager.setState("default");
-    this.cursorManager.showCursor();
-
-    // Cria o personagem com aura
+    // Cria personagem com aura
     this.characterWithAura.create("nonbinary");
     this.characterWithAura.container
       .setPosition(this.scale.width / 2 - 75, 300)
       .setAlpha(0);
 
-    this.createGenderTitle();
+    this.createTitle("Selecione sua identidade de gênero");
 
     this.genderOptions = new GenderOptions(
       this,
@@ -558,23 +714,28 @@ export class IntroScene extends Scene {
       (gender) => this.onGenderHover(gender)
     );
 
-    this.genderOptions.create();
+    this.genderOptions?.create();
   }
 
-  private createGenderTitle(): void {
-    this.genderTitleText = this.add
-      .text(
+  private createTitle(title: string): void {
+    this.titleText?.destroy();
+
+    this.titleText = this.textManager
+      .createText(
         this.scale.width / 2,
         36,
-        "SELECIONE SUA IDENTIDADE DE GÊNERO",
+        title.toUpperCase(),
         {
-          ...INTRO_CONFIG.fonts.dialog,
-          fontSize: "32px",
+          fontFamily: INTRO_CONFIG.fonts.title.fontFamily,
+          fontSize: INTRO_CONFIG.fonts.title.fontSize,
           color: this.convertColorToString(
-            INTRO_CONFIG.colors.highlight
+            INTRO_CONFIG.colors.title
           ),
           backgroundColor: "rgba(0, 0, 0, 0.7)",
           padding: { x: 20, y: 10 },
+          align: "center",
+          stroke: "#000000",
+          strokeThickness: 4,
         }
       )
       .setOrigin(0.5)
@@ -582,23 +743,22 @@ export class IntroScene extends Scene {
   }
 
   private onGenderHover(gender: PlayerGender): void {
-    // Atualiza o personagem com o gênero selecionado
     this.characterWithAura.updateGender(gender);
     this.characterWithAura.container.setAlpha(1);
-
-    // Atualiza o quadro de rosto
     this.faceFrame.show(gender);
-    this.audio.playSelect();
-
-    // IMPORTANTE: Atualiza o cursor para estado "hover"
-    this.cursorManager.setState("hover");
+    this.audioManager.playSFX("snd_select");
   }
 
   private selectGender(gender: PlayerGender): void {
-    this.audio.playConfirm();
+    this.audioManager.playSFX("snd_confirm");
     this.playerGender = gender;
+    this.registry.set("playerGender", this.playerGender);
+    localStorage.setItem(
+      "player_gender",
+      JSON.stringify(this.playerGender)
+    );
 
-    this.genderOptions.highlightSelected(gender);
+    this.genderOptions?.highlightSelected(gender);
     this.characterWithAura.updateGender(gender);
 
     this.registry.set("playerSprite", `${gender}-run`);
@@ -614,24 +774,19 @@ export class IntroScene extends Scene {
   }
 
   private completeIntroduction(): void {
-    this.registry.set("playerName", this.playerName);
-    this.registry.set("playerGender", this.playerGender);
-    this.registry.set("playerCareer", this.playerCareer);
-    this.registry.set("hasSeenIntro", true);
+    // Salva dados do jogador
     this.registry.set(
       "playerSprite",
       `${this.playerGender}-run`
     );
 
     if (this.idCard) {
-      // Salva dados do IdCard no registro
       this.registry.set("idCardData", {
-        nome: this.playerName,
-        genero: this.playerGender,
+        name: this.playerName,
+        gender: this.playerGender,
         faceTexture: `${this.playerGender}-face`,
       });
 
-      // Efeito de zoom e fade out
       this.tweens.add({
         targets: this.idCard,
         scale: 1.3,
@@ -661,11 +816,14 @@ export class IntroScene extends Scene {
       duration: 1500,
     });
 
-    this.audio.fadeOutMusic();
+    this.audioManager.fadeOutMusic();
 
     this.cameras.main.once(
       Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE,
       () => {
+        this.scene.stop("IntroScene");
+        this.scene.resume("UIScene");
+
         this.scene.start("MainScene", {
           mapKey: "hub",
           spawnName: "spawn_start",
@@ -677,11 +835,11 @@ export class IntroScene extends Scene {
 
   private cleanup(): void {
     this.inputSystem.removeAllListeners();
-    this.audio.stopMusic();
+    this.audioManager.stopMusic();
     this.tweens.killAll();
     this.time.removeAllEvents();
 
-    // Limpa qualquer input
+    // Limpa inputs
     if (this.nameInput) {
       this.nameInput.destroy();
       this.nameInput = null;
@@ -691,19 +849,25 @@ export class IntroScene extends Scene {
       this.careerOptions.destroy();
     }
 
-    // Remove o estilo CSS que força cursor none
-    const style = document.getElementById(
-      "cursor-fix-style"
-    );
-    if (style) {
-      style.remove();
-    }
-
-    // Restaura cursor padrão antes de sair
-    this.cursorManager.setState("default");
+    // Remove listeners de teclado
+    this.input.keyboard?.off("keydown-ESC");
+    this.input.keyboard?.off("keydown-F11");
+    this.input.keyboard?.off("keydown-P");
   }
 
   private convertColorToString(color: number): string {
     return `#${color.toString(16).padStart(6, "0")}`;
+  }
+
+  update(time: number, delta: number): void {
+    // Atualizações por frame
+    if (this.codeRainBackground) {
+      this.codeRainBackground.update();
+    }
+  }
+
+  // Adiciona getter para verificar se o menu está aberto (se não existir no SettingsMenu)
+  public get isMenuOpen(): boolean {
+    return (this.settingsMenu as any).isVisible === true;
   }
 }

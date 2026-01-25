@@ -1,5 +1,6 @@
 // components/NameInput.ts
 import { Scene } from "phaser";
+import { AudioManager } from "../../../../managers/AudioManager";
 
 export class NameInput {
   private scene: Scene;
@@ -15,8 +16,9 @@ export class NameInput {
   private caretBlinkTimer!: Phaser.Time.TimerEvent;
   private caretVisible: boolean = true;
   private inputText!: Phaser.GameObjects.Text;
-  private placeholderText!: Phaser.GameObjects.Text;
+  // private placeholderText!: Phaser.GameObjects.Text;
   private inputBackground!: Phaser.GameObjects.Graphics;
+  private audioManager!: AudioManager;
 
   constructor(
     scene: Scene,
@@ -24,6 +26,8 @@ export class NameInput {
   ) {
     this.scene = scene;
     this.onComplete = onComplete;
+
+    this.audioManager = new AudioManager(scene);
   }
 
   public create(): void {
@@ -76,6 +80,13 @@ export class NameInput {
 
     // Inicia a animação do caret
     this.startCaretBlink();
+
+    this.inputElement.style.cursor = "none";
+  }
+
+  public getElement(): Phaser.GameObjects.DOMElement | null {
+    // Retorne a variável onde você armazena o domElement do Phaser
+    return this.inputField;
   }
 
   private createCustomInput(
@@ -108,13 +119,13 @@ export class NameInput {
     );
 
     // Texto do placeholder (inicial)
-    this.placeholderText = this.scene.add
-      .text(-180, 0, "DIGITE SEU NOME", {
-        fontSize: "32px",
-        fontFamily: "'VT323', monospace",
-        color: "#444444",
-      })
-      .setOrigin(0, 0.5);
+    // this.placeholderText = this.scene.add
+    //   .text(-180, 0, "DIGITE SEU NOME", {
+    //     fontSize: "32px",
+    //     fontFamily: "'VT323', monospace",
+    //     color: "#444444",
+    //   })
+    //   .setOrigin(0, 0.5);
 
     // Texto do input (onde o nome digitado aparece)
     this.inputText = this.scene.add
@@ -138,7 +149,6 @@ export class NameInput {
     // Adiciona todos os elementos ao container do input
     customInputContainer.add([
       this.inputBackground,
-      this.placeholderText,
       this.inputText,
       this.caret,
     ]);
@@ -196,6 +206,14 @@ export class NameInput {
           this.scene.time.delayedCall(10, () => {
             this.updateInputDisplay();
           });
+       
+          this.audioManager.playSFX("delete_char", {
+            volume: 1,
+          });
+        } else if (/^[a-zA-Z0-9]$/.test(event.key)) {
+          this.audioManager.playSFX("typing", {
+            volume: 1,
+          });
         }
       }
     );
@@ -230,7 +248,7 @@ export class NameInput {
     this.caret.setX(-180 + textWidth);
 
     // Esconde placeholder se houver texto
-    this.placeholderText.setVisible(value.length === 0);
+    // this.placeholderText.setVisible(value.length === 0);
 
     // Ajusta a altura do caret
     this.caret.setSize(4, value.length > 0 ? 40 : 50);

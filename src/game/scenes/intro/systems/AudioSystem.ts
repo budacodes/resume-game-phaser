@@ -2,7 +2,8 @@ import { Scene } from "phaser";
 
 export class AudioSystem {
   private scene: Scene;
-  private typeSounds: Phaser.Sound.BaseSound[] = [];
+  private typeSound!: Phaser.Sound.BaseSound;
+  private deleteCharSound!: Phaser.Sound.BaseSound;
   private selectSound!: Phaser.Sound.BaseSound;
   private confirmSound!: Phaser.Sound.BaseSound;
   private errorSound!: Phaser.Sound.BaseSound;
@@ -13,11 +14,13 @@ export class AudioSystem {
   }
 
   setup(): void {
-    this.typeSounds = [
-      this.scene.sound.add("type_1", { volume: 0.1 }),
-      this.scene.sound.add("type_2", { volume: 0.5 }),
-      this.scene.sound.add("type_3", { volume: 0.2 }),
-    ];
+    this.typeSound = this.scene.sound.add("typing", {
+      volume: 0.5,
+    });
+
+    this.deleteCharSound = this.scene.sound.add("typing", {
+      volume: 0.5,
+    });
 
     this.selectSound = this.scene.sound.add("snd_select", {
       volume: 0.4,
@@ -29,28 +32,27 @@ export class AudioSystem {
     this.errorSound = this.scene.sound.add("snd_error", {
       volume: 0.5,
     });
+
     this.bgMusic = this.scene.sound.add("intro_music", {
       volume: 0.08,
       loop: true,
     });
+  }
 
-    if (!this.scene.sound.locked) {
-      this.bgMusic.play();
-    }
+  stopTypeSound(): void {
+    this.typeSound.stop();
   }
 
   playTypeSound(): void {
-    if (this.typeSounds.length === 0) return;
+    this.typeSound.play();
+  }
 
-    const randomSound =
-      this.typeSounds[
-        Math.floor(Math.random() * this.typeSounds.length)
-      ];
-    randomSound.play({
-      rate: 0.85 + Math.random() * 0.3,
-      volume: 0.05,
-      detune: Math.random() * 200 - 100,
-    });
+  stopDeleteCharSound(): void {
+    this.deleteCharSound.stop();
+  }
+
+  playDeleteCharSound(): void {
+    this.deleteCharSound.play();
   }
 
   playSelect(): void {

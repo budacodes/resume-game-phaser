@@ -12,23 +12,24 @@ export const INTRO_CONFIG: IntroConfig = {
     nonbinary: 0x9b59b6,
     error: 0xff6b6b,
     success: 0x51cf66,
+    title: 0x00ff00,
   },
   fonts: {
     title: {
-      fontFamily: '"VT323"',
-      fontSize: "36px",
+      fontFamily: "VT323",
+      fontSize: 36,
     },
     dialog: {
-      fontFamily: '"VT323"',
-      fontSize: "24px",
+      fontFamily: "VT323",
+      fontSize: 24,
     },
     input: {
-      fontFamily: '"VT323"',
-      fontSize: "24px",
+      fontFamily: "VT323",
+      fontSize: 24,
     },
     small: {
-      fontFamily: '"VT323"',
-      fontSize: "16px",
+      fontFamily: "VT323",
+      fontSize: 16,
     },
   },
 };

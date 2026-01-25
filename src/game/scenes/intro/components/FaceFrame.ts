@@ -34,6 +34,19 @@ export class FaceFrame {
     this.currentFrame = container;
   }
 
+  public hideAll(): void {
+    this.frames.forEach((container) => {
+      this.scene.tweens.add({
+        targets: container,
+        alpha: 0,
+        scale: 0.8,
+        duration: 500,
+        onComplete: () => container.setVisible(false),
+      });
+    });
+    this.currentFrame = null;
+  }
+
   private addFace(
     container: Phaser.GameObjects.Container,
     gender: PlayerGender
@@ -119,8 +132,23 @@ export class FaceFrame {
   }
 
   show(gender: PlayerGender): void {
+    // Se o gênero que queremos mostrar já é o atual e ele está visível, não faz nada
+    if (
+      this.currentFrame &&
+      this.currentFrame.name === gender &&
+      this.currentFrame.alpha > 0
+    ) {
+      return;
+    }
+
+    // Esconde o anterior sem destruir (ou apenas inicia o fade out)
     if (this.currentFrame) {
-      this.hideCurrent();
+      this.scene.tweens.add({
+        targets: this.currentFrame,
+        alpha: 0,
+        scale: 0.8,
+        duration: 200,
+      });
     }
 
     let frame = this.frames.get(gender);
@@ -130,7 +158,8 @@ export class FaceFrame {
       frame = this.frames.get(gender)!;
     }
 
-    frame.setAlpha(0).setScale(0.8);
+    this.scene.tweens.killTweensOf(frame);
+    frame.setAlpha(0).setScale(0.8).setVisible(true);
 
     this.scene.tweens.add({
       targets: frame,
@@ -141,20 +170,6 @@ export class FaceFrame {
     });
 
     this.currentFrame = frame;
-  }
-
-  private hideCurrent(): void {
-    if (this.currentFrame) {
-      this.scene.tweens.add({
-        targets: this.currentFrame,
-        alpha: 0,
-        scale: 0.8,
-        duration: 300,
-        ease: "Sine.easeOut",
-      });
-
-      this.currentFrame.destroy();
-    }
   }
 
   createParticles(

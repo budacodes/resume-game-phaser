@@ -37,7 +37,7 @@ export class GenderOptions {
   }
 
   create(): void {
-    this.cursorManager = new CursorManager(this.scene);
+    this.cursorManager = CursorManager.getInstance();
 
     const genderOptions: GenderOption[] = [
       {
