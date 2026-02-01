@@ -1,6 +1,10 @@
 import Phaser from "phaser";
+import { CursorPort } from "../../../../application/ports/CursorPort";
 import { CursorManager } from "../../../../managers/CursorManager";
+import { CursorManagerAdapter } from "../../../../infrastructure/adapters/CursorManagerAdapter";
 import { SettingsManager } from "../../../../managers/SettingsManager";
+import { SettingsPort } from "../../../../application/ports/SettingsPort";
+import { SettingsManagerAdapter } from "../../../../infrastructure/adapters/SettingsManagerAdapter";
 import { COLORS } from "../Utils";
 
 export class SettingsMenu {
@@ -15,7 +19,8 @@ export class SettingsMenu {
   private readonly rowHeight = 44;
   private readonly sliderWidth = 240;
 
-  private cursorManager!: CursorManager;
+  private cursorManager!: CursorPort;
+  private settingsPort!: SettingsPort;
 
   // Configurações
   private settings = {
@@ -28,16 +33,20 @@ export class SettingsMenu {
     fullscreen: false,
   };
 
-  constructor(scene: Phaser.Scene) {
+  constructor(
+    scene: Phaser.Scene,
+    cursor?: CursorPort,
+    settingsPort?: SettingsPort,
+  ) {
     this.scene = scene;
 
-    // 1. Garante a inicialização do Manager passando o game
     const manager = SettingsManager.getInstance(
       this.scene.game,
     );
+    this.settingsPort =
+      settingsPort ?? new SettingsManagerAdapter(manager);
 
-    // 2. Carrega as configurações reais IMEDIATAMENTE
-    const saved = manager.getSettings();
+    const saved = this.settingsPort.getSettings();
     this.settings = { ...saved }; // Clona os valores para o menu
 
     this.container = scene.add.container(0, 0);
@@ -45,7 +54,9 @@ export class SettingsMenu {
     this.container.setVisible(false);
     this.container.setScrollFactor(0);
 
-    this.cursorManager = CursorManager.getInstance();
+    this.cursorManager =
+      cursor ??
+      new CursorManagerAdapter(CursorManager.getInstance());
 
     this.create();
   }
@@ -67,9 +78,8 @@ export class SettingsMenu {
     this.create();
 
     // 3. Cursor sempre correto
-    const cursor = CursorManager.getInstance();
-    cursor.setScene(this.scene);
-    cursor.showCursor();
+    this.cursorManager.setScene(this.scene);
+    this.cursorManager.showCursor();
 
     // 4. Mostra container
     this.container.setVisible(true);
@@ -595,18 +605,14 @@ export class SettingsMenu {
   }
 
   private updateLocalSettingsFromManager(): void {
-    const manager = SettingsManager.getInstance(
-      this.scene.game,
-    );
-
-    if (!manager) {
+    if (!this.settingsPort) {
       console.error(
         "SettingsManager ainda não foi inicializado!",
       );
       return;
     }
 
-    const globalSettings = manager.getSettings();
+    const globalSettings = this.settingsPort.getSettings();
 
     // Sincroniza os valores locais com os valores salvos no Manager
     this.settings.masterVolume =
@@ -626,11 +632,9 @@ export class SettingsMenu {
   }
 
   private applySettings(): void {
-    const settingsManager = SettingsManager.getInstance();
-
     // Salve os valores sem multiplicar aqui.
     // Deixe o AudioManager ou o Manager lidar com a hierarquia.
-    settingsManager.updateSettings({
+    this.settingsPort.updateSettings({
       masterVolume: this.settings.masterVolume,
       musicVolume: this.settings.musicVolume, // Valor puro do slider
       sfxVolume: this.settings.sfxVolume, // Valor puro do slider

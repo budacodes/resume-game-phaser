@@ -16,7 +16,6 @@ export class CursorManager {
   private scene!: Scene;
   private cursorSprite!: Phaser.GameObjects.Sprite;
 
-  private currentState: CursorState = "default";
   private isCustomCursorEnabled = true;
   private initialized = false;
 
@@ -161,8 +160,6 @@ export class CursorManager {
   // STATE
   // ─────────────────────────────────────────────
   public setState(state: CursorState) {
-    this.currentState = state;
-
     if (!this.isCustomCursorEnabled) return;
 
     this.cursorSprite.setFrame(this.frameMap[state]);

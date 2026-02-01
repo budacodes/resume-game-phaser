@@ -1,6 +1,10 @@
 import Phaser from "phaser";
+import { CursorPort } from "../../../../application/ports/CursorPort";
 import { CursorManager } from "../../../../managers/CursorManager";
+import { CursorManagerAdapter } from "../../../../infrastructure/adapters/CursorManagerAdapter";
 import { QuestManager } from "../../../../managers/QuestManager";
+import { QuestQueryPort } from "../../../../application/ports/QuestQueryPort";
+import { QuestManagerQuery } from "../../../../infrastructure/adapters/QuestManagerQuery";
 import { COLORS } from "../Utils";
 
 // Interface para estruturar as missões
@@ -22,11 +26,23 @@ export class QuestLog {
   private readonly panelPadding = 32;
   private readonly rowHeight = 70; // Maior que o settings para caber a descrição
 
-  private cursorManager: CursorManager;
+  private cursorManager: CursorPort;
+  private questQuery: QuestQueryPort;
 
-  constructor(scene: Phaser.Scene) {
+  constructor(
+    scene: Phaser.Scene,
+    cursor?: CursorPort,
+    questQuery?: QuestQueryPort,
+  ) {
     this.scene = scene;
-    this.cursorManager = CursorManager.getInstance();
+    this.cursorManager =
+      cursor ??
+      new CursorManagerAdapter(CursorManager.getInstance());
+    this.questQuery =
+      questQuery ??
+      new QuestManagerQuery(
+        QuestManager.getInstance(this.scene.game),
+      );
 
     this.container = scene.add.container(0, 0);
     this.container.setDepth(101); // Um pouco acima do settings se necessário
@@ -49,9 +65,8 @@ export class QuestLog {
     this.create();
 
     // 3. Cursor sempre correto
-    const cursor = CursorManager.getInstance();
-    cursor.setScene(this.scene);
-    cursor.showCursor();
+    this.cursorManager.setScene(this.scene);
+    this.cursorManager.showCursor();
 
     // 4. Mostra container
     this.container.setVisible(true);
@@ -122,10 +137,7 @@ export class QuestLog {
       .setOrigin(0.5);
     this.container.add(title);
 
-    const questManager = QuestManager.getInstance(
-      this.scene.game,
-    );
-    const currentQuests = questManager.getAllQuests();
+    const currentQuests = this.questQuery.getAllQuests();
 
     let cursorY = -140;
     currentQuests.forEach((quest) => {

@@ -15,7 +15,6 @@ export class CodeRainBackground {
   private readonly CODE_CHARS = "01{}();:.=+-*/&|!?<>[]";
   private readonly MAX_CHARS = 100;
   private readonly COLUMNS = 20;
-  private readonly ROWS = 30;
   private columnPositions: number[] = [];
   private waveTime = 0;
 

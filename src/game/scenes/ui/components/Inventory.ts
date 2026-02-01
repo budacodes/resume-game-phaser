@@ -1,9 +1,15 @@
 import Phaser from "phaser";
-import BBCodeText from "phaser3-rex-plugins/plugins/bbcodetext";
 import { InventoryItem } from "../../../../config/models/InventoryItem";
 import { InventoryItemSprite } from "../../../../entities/ItemSprite";
-import { CursorManager } from "../../../../managers/CursorManager";
-import { InventoryManager } from "../../../../managers/InventoryManager";
+import { DropItemConfirmationUseCase } from "../../../../application/usecases/DropItemConfirmationUseCase";
+import { InventoryQueryPort } from "../../../../application/ports/InventoryQueryPort";
+import { UseItemUseCase } from "../../../../application/usecases/UseItemUseCase";
+import {
+  InventoryComposition,
+  InventoryCompositionResult,
+} from "../../../../composition/InventoryComposition";
+import { CursorPort } from "../../../../application/ports/CursorPort";
+import { InventoryDetailsPanel } from "./InventoryDetailsPanel";
 import { COLORS } from "../Utils";
 
 export class Inventory {
@@ -11,8 +17,11 @@ export class Inventory {
   private container: Phaser.GameObjects.Container;
   private opened = false;
 
-  private cursorManager: CursorManager;
-  private inventoryManager: InventoryManager;
+  private cursorManager: CursorPort;
+  private dropItemConfirmationUseCase: DropItemConfirmationUseCase;
+  private inventoryQuery: InventoryQueryPort;
+  private useItemUseCase: UseItemUseCase;
+  private detailsPanel: InventoryDetailsPanel;
 
   private selectedSlot?: Phaser.GameObjects.Rectangle;
   private slotMap = new Map<
@@ -33,19 +42,39 @@ export class Inventory {
   private readonly slotPadding = 10;
   private readonly capacity = this.columns * this.rows;
 
-  private selectedItem: InventoryItem | null = null;
-
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
-    this.cursorManager = CursorManager.getInstance();
-    this.inventoryManager = InventoryManager.getInstance();
-
+    const composition = this.composeDependencies();
+    this.cursorManager = composition.cursor;
+    this.dropItemConfirmationUseCase =
+      composition.dropItemConfirmationUseCase;
+    this.inventoryQuery = composition.inventoryQuery;
     this.container = scene.add.container(0, 0);
     this.container.setDepth(101);
     this.container.setVisible(false);
     this.container.setScrollFactor(0);
 
+    this.useItemUseCase = composition.useItemUseCase;
+    this.detailsPanel = new InventoryDetailsPanel({
+      scene: this.scene,
+      container: this.container,
+      cursorManager: this.cursorManager,
+      panelWidth: this.panelWidth,
+      panelHeight: this.panelHeight,
+      useItemUseCase: this.useItemUseCase,
+      dropItemConfirmationUseCase:
+        this.dropItemConfirmationUseCase,
+      onRefresh: () => {
+        this.toggle();
+        this.toggle();
+      },
+    });
+
     this.create();
+  }
+
+  private composeDependencies(): InventoryCompositionResult {
+    return new InventoryComposition().build();
   }
 
   public open(): void {
@@ -61,9 +90,8 @@ export class Inventory {
     this.create();
 
     // 3. Cursor sempre correto
-    const cursor = CursorManager.getInstance();
-    cursor.setScene(this.scene);
-    cursor.showCursor();
+    this.cursorManager.setScene(this.scene);
+    this.cursorManager.showCursor();
 
     // 4. Mostra container
     this.container.setVisible(true);
@@ -133,7 +161,7 @@ export class Inventory {
 
     // Capacidade
     const obtainedCount =
-      this.inventoryManager.getObtainedItems().length;
+      this.inventoryQuery.getObtainedItems().length;
 
     this.container.add(
       this.scene.add
@@ -151,15 +179,15 @@ export class Inventory {
     );
 
     this.createGrid();
-    this.createDetailsPanel();
+    this.detailsPanel.createBasePanel();
 
     // Seleciona primeiro item automaticamente
     const firstItem =
-      this.inventoryManager.getObtainedItems()[0];
+      this.inventoryQuery.getObtainedItems()[0];
     if (firstItem) {
       this.selectItem(firstItem);
     } else {
-      this.showEmptyDetails();
+      this.detailsPanel.showEmpty();
     }
 
     // Botão fechar
@@ -189,7 +217,7 @@ export class Inventory {
 
   // GRID COM SLOTS VAZIOS
   private createGrid(): void {
-    const items = this.inventoryManager.getObtainedItems();
+    const items = this.inventoryQuery.getObtainedItems();
 
     const startX = -this.panelWidth / 2 + 32;
     const startY = -this.panelHeight / 2 + 96;
@@ -283,213 +311,8 @@ export class Inventory {
     this.selectedSlot = slot;
   }
 
-  // PAINEL DE DETALHES
-  private createDetailsPanel(): void {
-    const panelX = this.panelWidth / 2 - 200;
-
-    const panel = this.scene.add
-      .rectangle(panelX, 20, 360, 400, 0x111111, 0.95)
-      .setStrokeStyle(1, +`0x${COLORS.gold}`, 0.6);
-
-    panel.name = "details";
-    this.container.add(panel);
-  }
-
   private selectItem(item: InventoryItem): void {
-    this.selectedItem = item;
     this.highlightSlot(item.id);
-    this.clearDetails();
-
-    const panelX = this.panelWidth / 2 - 150;
-
-    // Ícone grande
-    // const icon = new CoinFlip(
-    //   this.scene,
-    //   panelX,
-    //   -140,
-    //   "coin_flip",
-    // ).setScale(4);
-
-    const icon = new InventoryItemSprite(
-      this.scene,
-      panelX,
-      -140,
-      item,
-    )
-      .setOrigin(0.5)
-      .setInteractive();
-
-    icon.show(panelX, -140, 4);
-
-    icon.name = "details";
-
-    // Nome
-    const name = new BBCodeText(
-      this.scene,
-      panelX,
-      -48,
-      item.name,
-      {
-        fontFamily: "'VT323'",
-        fontSize: "36px",
-        color: `#${COLORS.gold}`,
-      },
-    ).setOrigin(0.5);
-    name.name = "details";
-
-    // Descrição
-    const desc = new BBCodeText(
-      this.scene,
-      panelX - 150,
-      0,
-      item.description,
-      {
-        fontFamily: "'VT323'",
-        fontSize: "24px",
-        color: "#cccccc",
-        wrap: { width: 300 },
-      },
-    ).setOrigin(0, 0);
-    desc.name = "details";
-
-    const detailBox = this.scene.add.rectangle(
-      panelX,
-      0,
-      340,
-      this.panelHeight,
-      0x222222,
-      0.3,
-    );
-    detailBox.name = "details";
-    this.container.add(detailBox);
-
-    // Botões
-    if (item.canBeUsed) {
-      this.createActionButton(
-        panelX - 90,
-        160,
-        "USAR",
-        `${COLORS.green}`,
-        () => {
-          console.log("Usar item:", item.id);
-        },
-      );
-    }
-
-    if (item.canBeDropped) {
-      this.createActionButton(
-        panelX + 70,
-        160,
-        "DESCARTAR",
-        `${COLORS.red}`,
-        () => {
-          this.confirmDrop(item);
-        },
-      );
-    }
-
-    this.container.add([icon, name, desc]);
-  }
-
-  private showEmptyDetails(): void {
-    this.clearDetails();
-
-    const panelX = this.panelWidth / 2 - 200;
-
-    const msg = this.scene.add
-      .text(panelX, 0, "Inventário vazio", {
-        fontFamily: "'VT323'",
-        fontSize: "18px",
-        color: "#777777",
-      })
-      .setOrigin(0.5);
-
-    msg.name = "details";
-    this.container.add(msg);
-  }
-
-  private clearDetails(): void {
-    this.container
-      .getAll()
-      .filter((o) => o.name === "details")
-      .forEach((o) => o.destroy());
-  }
-
-  private createActionButton(
-    x: number,
-    y: number,
-    label: string,
-    color: string,
-    onClick: () => void,
-  ): void {
-    console.log(color);
-
-    const btn = this.scene.add
-      .rectangle(x, y, 120, 32, 0x222222)
-      .setStrokeStyle(1, +`0x${color}`, 1)
-      .setInteractive();
-
-    const text = this.scene.add
-      .text(x, y, label, {
-        fontFamily: "'VT323'",
-        fontSize: "20px",
-        color: `#${color}`,
-      })
-      .setOrigin(0.5);
-
-    btn.name = text.name = "details";
-
-    btn.on("pointerover", () => {
-      this.cursorManager.setState("hover");
-      btn.setFillStyle(0x333333);
-    });
-
-    btn.on("pointerout", () => {
-      this.cursorManager.setState("default");
-      btn.setFillStyle(0x222222);
-    });
-
-    btn.on("pointerdown", onClick);
-
-    this.container.add([btn, text]);
-  }
-
-  private confirmDrop(item: InventoryItem): void {
-    const panelX = this.panelWidth / 2 - 200;
-
-    this.clearDetails();
-
-    const text = this.scene.add
-      .text(panelX, 0, "Descartar este item?", {
-        fontFamily: "'VT323'",
-        fontSize: "18px",
-        color: "#ffffff",
-      })
-      .setOrigin(0.5);
-
-    text.name = "details";
-    this.container.add(text);
-
-    this.createActionButton(
-      panelX - 70,
-      60,
-      "SIM",
-      `${COLORS.red}`,
-      () => {
-        this.inventoryManager.removeItem(item.id);
-        this.toggle();
-        this.toggle();
-      },
-    );
-
-    this.createActionButton(
-      panelX + 70,
-      60,
-      "NÃO",
-      `${COLORS.blue}`,
-      () => {
-        this.selectItem(item);
-      },
-    );
+    this.detailsPanel.showItem(item);
   }
 }

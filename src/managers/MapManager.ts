@@ -1,6 +1,6 @@
 // src/systems/MapManager.ts
 import { Scene, Tilemaps } from "phaser";
-import { LAYER_CONFIG, DEPTH } from "../config/Layers"; // Importe a config nova
+import { LAYER_CONFIG } from "../config/Layers"; // Importe a config nova
 
 export class MapManager {
   private scene: Scene;

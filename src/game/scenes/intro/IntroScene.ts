@@ -6,11 +6,8 @@ import {
 } from "../../../entities/IdCard";
 import { Planet } from "../../../entities/Planet";
 import { AudioManager } from "../../../managers/AudioManager";
-import { SettingsManager } from "../../../managers/SettingsManager";
 import { TextManager } from "../../../managers/TextManager";
-import { CursorManager } from "../../../managers/CursorManager";
 import { SettingsMenu } from "../ui/components/SettingsMenu";
-import { UIScene } from "../ui/UiScene";
 import { CareerOptions } from "./components/CareerOptions";
 import { CharacterWithAura } from "./components/CharacterWithAura";
 import { CodeRainBackground } from "./components/CodeRainBackground";
@@ -26,6 +23,10 @@ import {
   PlayerGender,
 } from "../../../config/types/IntroTypes";
 import { BudaDog } from "../../../entities/BudaDog";
+import { CursorPort } from "../../../application/ports/CursorPort";
+import { SettingsPort } from "../../../application/ports/SettingsPort";
+import { AudioManagerAdapter } from "../../../infrastructure/adapters/AudioManagerAdapter";
+import { IntroSceneComposition } from "../../../composition/IntroSceneComposition";
 
 export class IntroScene extends Scene {
   private currentStep = 0;
@@ -39,10 +40,11 @@ export class IntroScene extends Scene {
   private inputSystem!: InputSystem;
 
   // Managers
-  private settingsManager!: SettingsManager;
   private audioManager!: AudioManager;
   private textManager!: TextManager;
   private settingsMenu!: SettingsMenu;
+  private settingsPort!: SettingsPort;
+  private cursorPort!: CursorPort;
 
   // Components
   private codeRainBackground!: CodeRainBackground;
@@ -96,12 +98,14 @@ export class IntroScene extends Scene {
   }
 
   private initializeManagers(): void {
-    this.settingsManager = SettingsManager.getInstance(
-      this.game
-    );
-    this.audioManager = new AudioManager(this);
-    this.textManager = new TextManager(this);
-    this.settingsMenu = new SettingsMenu(this);
+    const composition = new IntroSceneComposition(
+      this,
+    ).build();
+    this.audioManager = composition.audioManager;
+    this.textManager = composition.textManager;
+    this.settingsMenu = composition.settingsMenu;
+    this.settingsPort = composition.settingsPort;
+    this.cursorPort = composition.cursorPort;
   }
 
   private setupDialogListeners(): void {
@@ -193,10 +197,10 @@ export class IntroScene extends Scene {
 
   private toggleFullscreen(): void {
     const currentFullscreen =
-      this.settingsManager.getSettings().fullscreen;
+      this.settingsPort.getSettings().fullscreen;
     const newFullscreen = !currentFullscreen;
 
-    this.settingsManager.updateSettings({
+    this.settingsPort.updateSettings({
       fullscreen: newFullscreen,
     });
 
@@ -491,7 +495,8 @@ export class IntroScene extends Scene {
         this,
         (careerId) =>
           this.selectCareer(careerId as PlayerCareer),
-        (careerId) => this.onCareerHover(careerId)
+        (careerId) => this.onCareerHover(careerId),
+        this.cursorPort,
       );
 
       this.careerOptions.create();
@@ -499,6 +504,7 @@ export class IntroScene extends Scene {
   }
 
   private onCareerHover(careerId: string): void {
+    void careerId;
     this.audioManager.playSFX("snd_select");
   }
 
@@ -595,33 +601,37 @@ export class IntroScene extends Scene {
 
     this.inputSystem.removeAllListeners();
 
-    this.nameInput = new NameInput(this, (name: string) => {
-      this.playerName = name.toUpperCase();
-      this.audioManager.playSFX("snd_confirm");
-      this.registry.set("playerName", this.playerName);
-      localStorage.setItem(
-        "player_name",
-        JSON.stringify(this.playerName)
-      );
+    this.nameInput = new NameInput(
+      this,
+      (name: string) => {
+        this.playerName = name.toUpperCase();
+        this.audioManager.playSFX("snd_confirm");
+        this.registry.set("playerName", this.playerName);
+        localStorage.setItem(
+          "player_name",
+          JSON.stringify(this.playerName)
+        );
 
-      this.codeRainBackground.createMatrixEffect(
-        this.scale.width / 2,
-        320
-      );
+        this.codeRainBackground.createMatrixEffect(
+          this.scale.width / 2,
+          320
+        );
 
-      this.time.delayedCall(800, () => {
-        this.nameInput?.destroy();
-        this.nameInput = null;
-        this.nameInputActive = false;
+        this.time.delayedCall(800, () => {
+          this.nameInput?.destroy();
+          this.nameInput = null;
+          this.nameInputActive = false;
 
-        this.input.keyboard?.resetKeys();
-        this.game.canvas.focus();
-        this.input.manager.enabled = true;
+          this.input.keyboard?.resetKeys();
+          this.game.canvas.focus();
+          this.input.manager.enabled = true;
 
-        this.currentStep = 3;
-        this.showStep();
-      });
-    });
+          this.currentStep = 3;
+          this.showStep();
+        });
+      },
+      new AudioManagerAdapter(this.audioManager),
+    );
 
     this.nameInput.create();
   }
@@ -647,7 +657,8 @@ export class IntroScene extends Scene {
     this.genderOptions = new GenderOptions(
       this,
       (gender) => this.selectGender(gender),
-      (gender) => this.onGenderHover(gender)
+      (gender) => this.onGenderHover(gender),
+      this.cursorPort,
     );
 
     this.genderOptions?.create();
@@ -810,6 +821,8 @@ export class IntroScene extends Scene {
   }
 
   update(time: number, delta: number): void {
+    void time;
+    void delta;
     if (this.codeRainBackground) {
       this.codeRainBackground.update();
     }

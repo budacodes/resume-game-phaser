@@ -1,13 +1,19 @@
 import { Scene } from "phaser";
 import { Player } from "../../entities/Player";
-import { MapManager } from "../../managers/MapManager";
+import { MapPort } from "../../application/ports/MapPort";
 import { UIScene } from "./ui/UiScene";
 import { COLORS } from "./ui/Utils";
+import { PhaserInteractionInput } from "../../infrastructure/adapters/PhaserInteractionInput";
+import { PhaserDialogEventAdapter } from "../../infrastructure/adapters/PhaserDialogEventAdapter";
+import { PhaserTimeScheduler } from "../../infrastructure/adapters/PhaserTimeScheduler";
+import { ShowDialogUseCase } from "../../application/usecases/ShowDialogUseCase";
+import { InteriorSceneComposition } from "../../composition/InteriorSceneComposition";
+import { WarpUseCase } from "../../application/usecases/WarpUseCase";
 
 export class InteriorScene extends Scene {
   // --- SISTEMAS ---
   private player!: Player;
-  private mapManager!: MapManager;
+  private mapPort!: MapPort;
   private uiScene!: UIScene;
   private doorOpenSound!: Phaser.Sound.BaseSound;
   private errorSound!: Phaser.Sound.BaseSound;
@@ -18,9 +24,7 @@ export class InteriorScene extends Scene {
   private initialFacing!: "up" | "down" | "right" | "left";
 
   // --- CONTROLES ---
-  private keyE!: Phaser.Input.Keyboard.Key;
-  private keyY!: Phaser.Input.Keyboard.Key;
-  private keyN!: Phaser.Input.Keyboard.Key;
+  private interactionInput!: PhaserInteractionInput;
   private isInteractionCooldown: boolean = false;
 
   // --- INTERAÇÃO ---
@@ -34,6 +38,10 @@ export class InteriorScene extends Scene {
 
   private npcs!: Phaser.Physics.Arcade.Group;
   private hasAppointment: boolean = false;
+  private dialogEventAdapter!: PhaserDialogEventAdapter;
+  private timeScheduler!: PhaserTimeScheduler;
+  private showDialogUseCase!: ShowDialogUseCase;
+  private warpUseCase!: WarpUseCase;
 
   constructor() {
     super("InteriorScene");
@@ -72,12 +80,29 @@ export class InteriorScene extends Scene {
     // Garante que o estado de leitura/travamento comece limpo
     this.isReading = false;
 
+    const composition = new InteriorSceneComposition(
+      this,
+    ).build({
+      onStarted: () => {
+        this.isReading = true;
+      },
+      onFinished: () => {
+        this.isReading = false;
+        this.startInteractionCooldown();
+      },
+    });
+    this.dialogEventAdapter = composition.dialogEventAdapter;
+    this.interactionInput = composition.interactionInput;
+    this.timeScheduler = composition.timeScheduler;
+    this.showDialogUseCase = composition.showDialogUseCase;
+    this.warpUseCase = composition.warpUseCase;
+
     // 3. INICIALIZA MAPA
-    this.mapManager = new MapManager(this);
-    this.mapManager.init(this.mapKey);
+    this.mapPort = composition.mapPort;
+    this.mapPort.init(this.mapKey);
 
     // 4. INICIALIZA PLAYER
-    const spawn = this.mapManager.getSpawnPoint(
+    const spawn = this.mapPort.getSpawnPoint(
       this.spawnName,
     ) || { x: 100, y: 100 };
 
@@ -92,17 +117,18 @@ export class InteriorScene extends Scene {
     }
 
     // Colisões
-    if (this.mapManager.colliders.length > 0) {
+    if (this.mapPort.getColliders().length > 0) {
       this.physics.add.collider(
         this.player,
-        this.mapManager.colliders,
+        this.mapPort.getColliders(),
       );
     }
 
     // 5. CÂMERA
-    const map = this.mapManager.map;
-    const mapWidth = map.widthInPixels;
-    const mapHeight = map.heightInPixels;
+    const mapSize = this.mapPort.getMapSize();
+    const mapWidth = mapSize?.widthInPixels ?? this.scale.width;
+    const mapHeight =
+      mapSize?.heightInPixels ?? this.scale.height;
 
     const zoom = 2;
     this.cameras.main.setZoom(zoom);
@@ -140,30 +166,12 @@ export class InteriorScene extends Scene {
 
     this.initAudioAndInputs();
     this.createInteractionZones();
-    this.setupDialogListeners();
+    this.dialogEventAdapter.subscribe();
   }
 
-  /**
-   * NOVO: Configura listeners para eventos de diálogo da UIScene
-   */
-  private setupDialogListeners(): void {
-    // Quando o diálogo for fechado
-    this.game.events.on("dialog-finished", () => {
-      this.onDialogClosed();
-    });
-  }
-
-  /**
-   * NOVO: Callback quando o diálogo é fechado
-   */
-  private onDialogClosed(): void {
-    this.isReading = false;
-
-    // Ativa o cooldown
+  private startInteractionCooldown(): void {
     this.isInteractionCooldown = true;
-
-    // Libera após 500ms
-    this.time.delayedCall(500, () => {
+    this.timeScheduler.delay(500, () => {
       this.isInteractionCooldown = false;
     });
   }
@@ -179,18 +187,6 @@ export class InteriorScene extends Scene {
       seek: 0,
     });
 
-    if (this.input.keyboard) {
-      this.keyE = this.input.keyboard.addKey(
-        Phaser.Input.Keyboard.KeyCodes.E,
-      );
-      this.keyY = this.input.keyboard.addKey(
-        Phaser.Input.Keyboard.KeyCodes.Y,
-      );
-      this.keyN = this.input.keyboard.addKey(
-        Phaser.Input.Keyboard.KeyCodes.N,
-      );
-    }
-
     this.interactionPrompt = this.add
       .sprite(0, -16, "btn-e")
       .setDepth(100)
@@ -203,17 +199,17 @@ export class InteriorScene extends Scene {
       allowGravity: false,
     });
 
-    const npcLayer =
-      this.mapManager.map.getObjectLayer("NPCs");
+    const npcObjects =
+      this.mapPort.getObjectLayerObjects("NPCs");
 
-    if (!npcLayer) {
+    if (!npcObjects) {
       console.warn(
         "Camada 'NPCs' não encontrada no Tiled.",
       );
       return;
     }
 
-    const adaObj = npcLayer.objects.find(
+    const adaObj = npcObjects.find(
       (obj) => obj.name === "NPC_Ada",
     );
 
@@ -270,10 +266,10 @@ export class InteriorScene extends Scene {
       classType: Phaser.GameObjects.Zone,
     });
 
-    const layer = this.mapManager.interactionLayer;
-    if (!layer) return;
+    const objects = this.mapPort.getInteractionObjects();
+    if (!objects) return;
 
-    layer.objects.forEach((obj) => {
+    objects.forEach((obj) => {
       const width = obj.width || 32;
       const height = obj.height || 32;
       const x = (obj.x || 0) + width / 2;
@@ -293,6 +289,7 @@ export class InteriorScene extends Scene {
       this.player,
       this.itemsZone,
       (player, zone) => {
+        void player;
         this.currentInteractiveObject =
           zone as Phaser.GameObjects.Zone;
         isOverlapping = true;
@@ -313,7 +310,7 @@ export class InteriorScene extends Scene {
       );
 
       if (
-        Phaser.Input.Keyboard.JustDown(this.keyE) &&
+        this.interactionInput.isInteractPressed() &&
         !this.isReading &&
         !this.isInteractionCooldown
       ) {
@@ -352,7 +349,6 @@ export class InteriorScene extends Scene {
   }
 
   private handleAdaInteraction() {
-    this.isReading = true;
     this.player.stopMovement();
 
     const playerName =
@@ -360,35 +356,30 @@ export class InteriorScene extends Scene {
 
     if (this.hasAppointment) {
       // Envia evento para UIScene mostrar o diálogo
-      this.game.events.emit("dialog-started", {
-        text: `[weight=900][color=#${COLORS.gold}]Ada[/color][/weight]: O elevador é logo ali à direita, [weight=900]${playerName}[/weight]. O chefe está te esperando no 2º andar.`,
-        hint: "[ ESPAÇO para fechar ]",
-        mode: "read",
-      });
+      this.showDialogUseCase.execute(
+        `[weight=900][color=#${COLORS.gold}]Ada[/color][/weight]: O elevador é logo ali à direita, [weight=900]${playerName}[/weight]. O chefe está te esperando no 2º andar.`,
+        "[ ESPAÇO para fechar ]",
+      );
     } else {
       this.hasAppointment = true;
 
-      // Envia evento para UIScene mostrar o diálogo
-      this.game.events.emit("dialog-started", {
-        text: `[weight=900][color=#${COLORS.gold}]Ada[/color][/weight]: Ah, você deve ser o [weight=900]${playerName}[/weight]! Vou anunciar sua chegada.\nPode subir, acabei de liberar seu crachá para o 2º andar.`,
-        hint: "[ ESPAÇO para fechar ]",
-        mode: "read",
-      });
+      this.showDialogUseCase.execute(
+        `[weight=900][color=#${COLORS.gold}]Ada[/color][/weight]: Ah, você deve ser o [weight=900]${playerName}[/weight}! Vou anunciar sua chegada.\nPode subir, acabei de liberar seu crachá para o 2º andar.`,
+        "[ ESPAÇO para fechar ]",
+      );
     }
   }
 
   private handleBudaInteraction() {
-    this.isReading = true;
     this.player.stopMovement();
 
     const playerName =
       localStorage.getItem("player_name") || "Bob";
 
-    this.game.events.emit("dialog-started", {
-      text: `[weight=900][color=#${COLORS.gold}]Buda[/color][/weight]: Grande [weight=900]${playerName}[/weight]! Como vai?\nObrigado por visitar meu mundo. Fique à vontade para olhar meus projetos nos terminais.`,
-      hint: "[ ESPAÇO para fechar ]",
-      mode: "read",
-    });
+    this.showDialogUseCase.execute(
+      `[weight=900][color=#${COLORS.gold}]Buda[/color][/weight]: Grande [weight=900]${playerName}[/weight]! Como vai?\nObrigado por visitar meu mundo. Fique à vontade para olhar meus projetos nos terminais.`,
+      "[ ESPAÇO para fechar ]",
+    );
   }
 
   private handleWarpAction(data: any) {
@@ -416,50 +407,31 @@ export class InteriorScene extends Scene {
       sceneProperties.requiresAccess &&
       !this.hasAppointment
     ) {
-      this.isReading = true;
       this.player.stopMovement();
 
-      // Envia evento para UIScene mostrar o diálogo
-      this.game.events.emit("dialog-started", {
-        text: `[weight=900][color=#${COLORS.gold}]Segurança (Interfone)[/color][/weight]: ACESSO NEGADO.\nPor favor, identifique-se na recepção antes de subir.`,
-        hint: "[ ESPAÇO para fechar ]",
-        mode: "read",
-      });
+      this.showDialogUseCase.execute(
+        `[weight=900][color=#${COLORS.gold}]Segurança (Interfone)[/color][/weight]: ACESSO NEGADO.\nPor favor, identifique-se na recepção antes de subir.`,
+        "[ ESPAÇO para fechar ]",
+      );
 
       this.errorSound.play();
       return;
     }
 
-    if (sceneProperties.targetScene) {
-      this.doorOpenSound.play();
-      this.cameras.main.fadeOut(1000, 0, 0, 0);
+    if (!this.warpUseCase.canWarp(sceneProperties)) return;
 
-      this.cameras.main.once(
-        Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE,
-        () => {
-          this.scene.start(sceneProperties.targetScene, {
-            mapKey: sceneProperties.mapKey,
-            spawnName: sceneProperties.targetSpawn,
-            facingDirection:
-              sceneProperties.facingDirection,
-          });
-        },
-      );
-    }
+    this.doorOpenSound.play();
+    this.warpUseCase.execute(sceneProperties);
   }
 
   private handleDialogInteraction(data: any) {
     const msg =
       this.getTiledProperty(data, "message") || "...";
 
-    this.isReading = true;
-
-    // Envia evento para UIScene mostrar o diálogo
-    this.game.events.emit("dialog-started", {
-      text: msg,
-      hint: "[ ESPAÇO para fechar ]",
-      mode: "read",
-    });
+    this.showDialogUseCase.execute(
+      msg,
+      "[ ESPAÇO para fechar ]",
+    );
   }
 
   // REMOVIDO: handleDialogInput() - Não é mais necessário
@@ -483,6 +455,7 @@ export class InteriorScene extends Scene {
         tween,
         target: Phaser.GameObjects.Sprite,
       ) => {
+        void tween;
         const currentScale = target.scaleY;
         const calculatedOffset = (1 - currentScale) * 10;
         target.setData("offsetY", calculatedOffset);

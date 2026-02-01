@@ -4,6 +4,10 @@ import VirtualJoystick from "phaser3-rex-plugins/plugins/virtualjoystick.js";
 import { DialogPayload } from "../../../config/models/DialogPayload";
 import { DialogMode } from "../../../config/types/DialogTypes";
 import { CursorManager } from "../../../managers/CursorManager";
+import { CursorPort } from "../../../application/ports/CursorPort";
+import { SettingsPort } from "../../../application/ports/SettingsPort";
+import { QuestQueryPort } from "../../../application/ports/QuestQueryPort";
+import { UISceneComposition } from "../../../composition/UISceneComposition";
 import { SettingsManager } from "../../../managers/SettingsManager";
 import { AudioSystem } from "../intro/systems/AudioSystem";
 import { TextTyper } from "../intro/systems/TextTyper";
@@ -22,12 +26,14 @@ type ActiveUI =
 
 export class UIScene extends Scene {
   private joystick: VirtualJoystick | null = null;
-  private bgm!: Phaser.Sound.BaseSound;
   public joystickCursorKeys: any = null;
   private settingsButton!: Phaser.GameObjects.Sprite;
   private questLogButton!: Phaser.GameObjects.Sprite;
   private inventoryButton!: Phaser.GameObjects.Sprite;
   private cursorManager!: CursorManager;
+  private cursorPort!: CursorPort;
+  private settingsPort!: SettingsPort;
+  private questQuery!: QuestQueryPort;
   private settingsMenu!: SettingsMenu;
   private questLog!: QuestLog;
   private inventory!: Inventory;
@@ -74,6 +80,10 @@ export class UIScene extends Scene {
     this.cursorManager.initialize(this);
     this.cursorManager.setScene(this);
     this.cursorManager.setState("default");
+    const composition = new UISceneComposition(this).build();
+    this.cursorPort = composition.cursorPort;
+    this.settingsPort = composition.settingsPort;
+    this.questQuery = composition.questQuery;
 
     // 1. Criamos o container da HUD
     this.mainUIContainer = this.add.container(0, 0);
@@ -102,8 +112,16 @@ export class UIScene extends Scene {
     this.setupJoystickConditionally();
 
     // 4. ELEMENTOS DA UI (Menus e Botões)
-    this.settingsMenu = new SettingsMenu(this);
-    this.questLog = new QuestLog(this);
+    this.settingsMenu = new SettingsMenu(
+      this,
+      this.cursorPort,
+      this.settingsPort,
+    );
+    this.questLog = new QuestLog(
+      this,
+      this.cursorPort,
+      this.questQuery,
+    );
     this.inventory = new Inventory(this);
 
     this.createSettingsButton();
@@ -116,9 +134,7 @@ export class UIScene extends Scene {
     this.mainUIContainer.add(this.inventoryButton);
 
     // 5. GESTÃO DE ESCALA E CONFIGURAÇÕES
-    const settingsManager = SettingsManager.getInstance(
-      this.game,
-    );
+    const settingsManager = this.settingsPort;
     this.applyCurrentScale(
       settingsManager.getSettings().uiScale,
     );
@@ -244,7 +260,12 @@ export class UIScene extends Scene {
     this.textTyper = new TextTyper(this, this.audioSystem);
 
     // Cria o DialogBox
-    this.dialogBox = new DialogBox(this);
+    this.dialogBox = new DialogBox(
+      this,
+      undefined,
+      undefined,
+      this.settingsPort,
+    );
     this.dialogBox.hide();
 
     // Define que estamos em modo intro inicialmente
@@ -567,7 +588,7 @@ export class UIScene extends Scene {
   }
 
   private createSettingsButton() {
-    const cursorManager = CursorManager.getInstance();
+    const cursorManager = this.cursorManager;
     const x = this.scale.width - 40;
     const y = 40;
 
@@ -599,7 +620,7 @@ export class UIScene extends Scene {
   }
 
   private createInventoryButton() {
-    const cursorManager = CursorManager.getInstance();
+    const cursorManager = this.cursorManager;
     const x = this.scale.width - 80;
     const y = 40;
 
@@ -644,7 +665,7 @@ export class UIScene extends Scene {
   }
 
   private createQuestLogButton() {
-    const cursorManager = CursorManager.getInstance();
+    const cursorManager = this.cursorManager;
     const x = this.scale.width - 60;
     const y = 40;
 
@@ -737,19 +758,6 @@ export class UIScene extends Scene {
     this.joystick?.destroy();
     this.joystick = null;
     this.joystickCursorKeys = null;
-  }
-
-  private manageMusic() {
-    if (!this.bgm) {
-      this.bgm = this.sound.add("bgm_hub", {
-        volume: 1,
-        loop: true,
-      });
-    }
-
-    if (!this.bgm.isPlaying && !this.sound.locked) {
-      this.bgm.play();
-    }
   }
 
   update() {

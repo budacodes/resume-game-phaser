@@ -1,5 +1,7 @@
 import { Scene } from "phaser";
 import { SettingsManager } from "../../../../managers/SettingsManager";
+import { SettingsPort } from "../../../../application/ports/SettingsPort";
+import { SettingsManagerAdapter } from "../../../../infrastructure/adapters/SettingsManagerAdapter";
 import BBCodeText from "phaser3-rex-plugins/plugins/bbcodetext.js";
 export class DialogBox {
   private scene: Scene;
@@ -23,6 +25,7 @@ export class DialogBox {
     scene: Scene,
     width: number = 500,
     height: number = 150,
+    settingsPort?: SettingsPort,
   ) {
     this.scene = scene;
     this.size = { width, height };
@@ -34,9 +37,12 @@ export class DialogBox {
       .setVisible(false);
 
     // Pegamos as configurações atuais
-    const settings = SettingsManager.getInstance(
-      this.scene.game,
-    ).getSettings();
+    const settingsProvider =
+      settingsPort ??
+      new SettingsManagerAdapter(
+        SettingsManager.getInstance(this.scene.game),
+      );
+    const settings = settingsProvider.getSettings();
 
     // Texto com escala de fonte aplicada
     const fontSize = 16 + settings.fontSize * 8; // Ex: 0 -> 16px, 1 -> 24px

@@ -1,10 +1,12 @@
 import { Scene } from "phaser";
+import { CursorPort } from "../../application/ports/CursorPort";
 import { CursorManager } from "../../managers/CursorManager";
+import { CursorManagerAdapter } from "../../infrastructure/adapters/CursorManagerAdapter";
 import { CodeRainBackground } from "./intro/components/CodeRainBackground";
 import { COLORS } from "./ui/Utils";
 
 export class SplashScene extends Scene {
-  private cursorManager!: CursorManager;
+  private cursorManager!: CursorPort;
   private codeRainBackground!: CodeRainBackground;
 
   constructor() {
@@ -12,7 +14,9 @@ export class SplashScene extends Scene {
   }
 
   create() {
-    this.cursorManager = CursorManager.getInstance();
+    this.cursorManager = new CursorManagerAdapter(
+      CursorManager.getInstance(),
+    );
     this.cursorManager.setState("default");
     this.game.events.emit("scene-changed", "SplashScene");
     this.game.events.emit("disable-joystick");

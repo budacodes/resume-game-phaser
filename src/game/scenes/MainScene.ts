@@ -1,19 +1,26 @@
 import { Scene } from "phaser";
 import { Player } from "../../entities/Player";
-import { CursorManager } from "../../managers/CursorManager";
-import { MapManager } from "../../managers/MapManager";
 import { UIScene } from "./ui/UiScene";
-import { InventoryManager } from "../../managers/InventoryManager";
-import { AudioManager } from "../../managers/AudioManager";
+import { CollectItemUseCase } from "../../application/usecases/CollectItemUseCase";
+import { FountainInteractionUseCase } from "../../application/usecases/FountainInteractionUseCase";
+import { InsanosFlagUseCase } from "../../application/usecases/InsanosFlagUseCase";
+import { ShowDialogUseCase } from "../../application/usecases/ShowDialogUseCase";
+import { WarpUseCase } from "../../application/usecases/WarpUseCase";
+import { PhaserInteractionInput } from "../../infrastructure/adapters/PhaserInteractionInput";
+import { PhaserDialogEventAdapter } from "../../infrastructure/adapters/PhaserDialogEventAdapter";
+import { PhaserTimeScheduler } from "../../infrastructure/adapters/PhaserTimeScheduler";
+import { AudioPort } from "../../application/ports/AudioPort";
+import { MainSceneComposition } from "../../composition/MainSceneComposition";
+import { MapPort } from "../../application/ports/MapPort";
+import { CursorPort } from "../../application/ports/CursorPort";
 
 export class MainScene extends Scene {
   private player!: Player;
-  private mapManager!: MapManager;
+  private mapPort!: MapPort;
+  private cursor!: CursorPort;
   private uiScene!: UIScene;
 
-  private keyE!: Phaser.Input.Keyboard.Key;
-  private keyY!: Phaser.Input.Keyboard.Key;
-  private keyN!: Phaser.Input.Keyboard.Key;
+  private interactionInput!: PhaserInteractionInput;
 
   private coinSound!: Phaser.Sound.BaseSound;
   private waterDropSound!: Phaser.Sound.BaseSound;
@@ -35,9 +42,15 @@ export class MainScene extends Scene {
     | "left" = "down";
   private isPlayerReady: boolean = false;
 
-  private inventoryManager!: InventoryManager;
+  private collectItemUseCase!: CollectItemUseCase;
+  private fountainInteractionUseCase!: FountainInteractionUseCase;
+  private insanosFlagUseCase!: InsanosFlagUseCase;
+  private showDialogUseCase!: ShowDialogUseCase;
+  private warpUseCase!: WarpUseCase;
+  private dialogEventAdapter!: PhaserDialogEventAdapter;
+  private timeScheduler!: PhaserTimeScheduler;
 
-  private audio!: AudioManager;
+  private audio!: AudioPort;
 
   constructor() {
     super("MainScene");
@@ -52,18 +65,36 @@ export class MainScene extends Scene {
   }
 
   create() {
-    this.audio = AudioManager.getInstance(this);
+    const composition = new MainSceneComposition(this).build({
+      onStarted: () => {
+        this.isReading = true;
+      },
+      onFinished: () => {
+        this.isReading = false;
+        this.isQuestionMode = false;
+      },
+    });
 
-    this.mapManager = new MapManager(this);
-    this.mapManager.init("hub");
+    this.mapPort = composition.mapPort;
+    this.mapPort.init("hub");
+    this.cursor = composition.cursor;
 
-    this.inventoryManager = InventoryManager.getInstance();
+    this.audio = composition.audio;
+    this.collectItemUseCase = composition.collectItemUseCase;
+    this.fountainInteractionUseCase =
+      composition.fountainInteractionUseCase;
+    this.insanosFlagUseCase = composition.insanosFlagUseCase;
+    this.showDialogUseCase = composition.showDialogUseCase;
+    this.warpUseCase = composition.warpUseCase;
+    this.interactionInput = composition.interactionInput;
+    this.dialogEventAdapter = composition.dialogEventAdapter;
+    this.timeScheduler = composition.timeScheduler;
 
     this.game.events.emit("scene-changed", "MainScene");
 
     this.game.events.emit("enable-joystick");
 
-    this.time.delayedCall(100, () => {
+    this.timeScheduler.delay(100, () => {
       if (this.scene.isActive("UIScene")) {
         this.uiScene = this.scene.get("UIScene") as UIScene;
       }
@@ -74,21 +105,13 @@ export class MainScene extends Scene {
       this.isPlayerReady = true;
     });
 
-    const cursor = CursorManager.getInstance();
-    cursor.setState("default");
+    this.cursor.setState("default");
 
-    this.game.events.on("dialog-started", () => {
-      this.isReading = true;
-    });
-
-    this.game.events.on("dialog-finished", () => {
-      this.isReading = false;
-      this.isQuestionMode = false;
-    });
+    this.dialogEventAdapter.subscribe();
   }
 
   private createPlayer() {
-    const spawn = this.mapManager.getSpawnPoint(
+    const spawn = this.mapPort.getSpawnPoint(
       this.targetSpawn,
     ) || {
       x: 100,
@@ -113,10 +136,10 @@ export class MainScene extends Scene {
 
     this.player.setFacing(this.facingDirection);
 
-    if (this.mapManager.colliders.length > 0) {
+    if (this.mapPort.getColliders().length > 0) {
       this.physics.add.collider(
         this.player,
-        this.mapManager.colliders,
+        this.mapPort.getColliders(),
       );
     }
 
@@ -167,15 +190,9 @@ export class MainScene extends Scene {
       loop: true,
     });
 
-    if (this.input.keyboard) {
-      this.keyE = this.input.keyboard.addKey(
-        Phaser.Input.Keyboard.KeyCodes.E,
-      );
-      this.keyY = this.input.keyboard.addKey(
-        Phaser.Input.Keyboard.KeyCodes.Y,
-      );
-      this.keyN = this.input.keyboard.addKey(
-        Phaser.Input.Keyboard.KeyCodes.N,
+    if (!this.interactionInput) {
+      this.interactionInput = new PhaserInteractionInput(
+        this,
       );
     }
 
@@ -190,10 +207,10 @@ export class MainScene extends Scene {
       classType: Phaser.GameObjects.Zone,
     });
 
-    const layer = this.mapManager.interactionLayer;
-    if (!layer) return;
+    const objects = this.mapPort.getInteractionObjects();
+    if (!objects) return;
 
-    layer.objects.forEach((obj) => {
+    objects.forEach((obj) => {
       const width = obj.width || 32;
       const height = obj.height || 32;
       const x = (obj.x || 0) + width / 2;
@@ -227,6 +244,7 @@ export class MainScene extends Scene {
         tween,
         target: Phaser.GameObjects.Sprite,
       ) => {
+        void tween;
         const currentScale = target.scaleY;
         const calculatedOffset = (1 - currentScale) * 10;
         target.setData("offsetY", calculatedOffset);
@@ -250,6 +268,7 @@ export class MainScene extends Scene {
       this.player,
       this.itemsZone,
       (player, zone) => {
+        void player;
         this.currentInteractiveObject =
           zone as Phaser.GameObjects.Zone;
         isOverlapping = true;
@@ -285,10 +304,8 @@ export class MainScene extends Scene {
         this.player.y - 24 + animOffset,
       );
 
-      if (
-        Phaser.Input.Keyboard.JustDown(this.keyE) &&
-        !this.isReading
-      ) {
+      if (this.interactionInput.isInteractPressed() &&
+        !this.isReading) {
         this.triggerAction(this.currentInteractiveObject);
       }
     } else {
@@ -325,20 +342,9 @@ export class MainScene extends Scene {
   }
 
   private handleFoundCoinInteraction() {
-    if (this.inventoryManager.hasItem("coin")) {
-      this.game.events.emit("dialog-started", {
-        text: "Não há nada aqui...",
-        hint: "[ ESPAÇO para fechar ]",
-        mode: "read",
-      });
-
-      return;
-    }
-
-    this.inventoryManager.obtainItem("coin");
-
-    this.game.events.emit("dialog-started", {
-      text: "Você encontrou uma moeda!",
+    this.collectItemUseCase.execute("coin", {
+      alreadyHaveText: "Não há nada aqui...",
+      obtainedText: "Você encontrou uma moeda!",
       hint: "[ ESPAÇO para fechar ]",
       mode: "read",
     });
@@ -361,55 +367,27 @@ export class MainScene extends Scene {
       ),
     };
 
-    if (sceneProperties.targetScene) {
-      this.doorOpenSound.play();
-      this.cameras.main.fadeOut(1000, 0, 0, 0);
+    if (!this.warpUseCase.canWarp(sceneProperties)) return;
 
-      this.cameras.main.once(
-        Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE,
-        () => {
-          this.scene.start(sceneProperties.targetScene, {
-            mapKey: sceneProperties.mapKey,
-            spawnName: sceneProperties.targetSpawn,
-            facingDirection:
-              sceneProperties.facingDirection,
-          });
-        },
-      );
-    }
+    this.doorOpenSound.play();
+    this.warpUseCase.execute(sceneProperties);
   }
 
   private handleDialogInteraction(data: any) {
     const msg =
       this.getTiledProperty(data, "message") || "...";
-    this.game.events.emit("dialog-started");
-    this.game.events.emit("show-dialog", msg);
+    this.showDialogUseCase.execute(msg);
   }
 
   private handleFountainInteraction() {
-    if (this.inventoryManager.hasItem("coin")) {
-      this.isQuestionMode = true;
-
-      this.game.events.emit("dialog-started", {
-        text: "A fonte emite uma aura estranha...\nDeseja jogar uma moeda?\n\n[Y] Sim [N] Não",
-        mode: "question",
-      });
-    } else {
-      this.game.events.emit("dialog-started", {
-        text: "A fonte emite uma aura estranha...\nParece até pedir algo...",
-        hint: "[ ESPAÇO para fechar ]",
-        mode: "read",
-      });
-    }
+    this.isQuestionMode =
+      this.fountainInteractionUseCase.startInteraction();
   }
 
   private handleInsanosFlagInteraction(
     zone: Phaser.GameObjects.Zone,
   ) {
-    // Segurança extra
-    if (this.registry.get("insanos_flag_seen")) return;
-
-    this.registry.set("insanos_flag_seen", true);
+    if (!this.insanosFlagUseCase.start()) return;
 
     // Para o player brevemente
     this.player.stopMovement();
@@ -417,7 +395,7 @@ export class MainScene extends Scene {
     // Abaixa música atual
     this.audio.fadeOutMusic(600);
 
-    this.time.delayedCall(600, () => {
+    this.timeScheduler.delay(600, () => {
       console.log("tocou fx");
       this.audio.playSFX("snd_flag", {
         volume: 1.5,
@@ -431,17 +409,11 @@ export class MainScene extends Scene {
         volume: 1.5,
       });
 
-      this.game.events.emit("dialog-started", {
-        text: "Algumas bandeiras não se explicam.",
-        mode: "read",
-      });
+      this.insanosFlagUseCase.showIntroDialog();
     });
 
-    this.time.delayedCall(6000, () => {
-      this.inventoryManager.obtainItem("issi_pin");
-
-      this.game.events.emit("hide-dialog");
-
+    this.timeScheduler.delay(6000, () => {
+      this.insanosFlagUseCase.complete();
       this.audio.fadeInMusic("bgm_hub", 3000);
     });
 
@@ -450,20 +422,15 @@ export class MainScene extends Scene {
   }
 
   private handleFountainQuestionInput() {
-    if (Phaser.Input.Keyboard.JustDown(this.keyY)) {
+    if (this.interactionInput.isYesPressed()) {
       this.coinSound.play();
       setTimeout(() => this.waterDropSound.play(), 400);
 
-      this.inventoryManager.removeItem("coin");
-
-      this.game.events.emit("dialog-started", {
-        hint: "[ ESPAÇO para fechar ]",
-        text: "Você fez um pedido silencioso...",
-      });
+      this.fountainInteractionUseCase.answerYes();
     }
 
-    if (Phaser.Input.Keyboard.JustDown(this.keyN)) {
-      this.game.events.emit("hide-dialog");
+    if (this.interactionInput.isNoPressed()) {
+      this.fountainInteractionUseCase.answerNo();
     }
   }
 

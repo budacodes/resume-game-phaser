@@ -327,10 +327,6 @@ export class IdCard extends Phaser.GameObjects.Container {
     return colors[gender] || 0x95a5a6;
   }
 
-  private convertColorToString(color: number): string {
-    return `#${color.toString(16).padStart(6, "0")}`;
-  }
-
   public show(): void {
     this.setScale(0.8);
     this.setAlpha(0);

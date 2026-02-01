@@ -1,5 +1,7 @@
 import { Scene } from "phaser";
+import { CursorPort } from "../../../../application/ports/CursorPort";
 import { CursorManager } from "../../../../managers/CursorManager";
+import { CursorManagerAdapter } from "../../../../infrastructure/adapters/CursorManagerAdapter";
 import { COLORS } from "../../ui/Utils";
 
 export type CareerOption = {
@@ -18,8 +20,7 @@ export class CareerOptions {
   private onSelect: (careerId: string) => void;
   private onHover?: (careerId: string) => void;
   private currentHighlightedIndex: number = 0;
-  private careerIcons!: Phaser.GameObjects.Sprite;
-  private cursorManager!: CursorManager;
+  private cursorManager!: CursorPort;
 
   // Cores no estilo retro
   private readonly COLORS = {
@@ -39,6 +40,7 @@ export class CareerOptions {
     scene: Scene,
     onSelect: (careerId: string) => void,
     onHover?: (careerId: string) => void,
+    cursor?: CursorPort,
   ) {
     this.scene = scene;
     this.onSelect = onSelect;
@@ -46,7 +48,9 @@ export class CareerOptions {
 
     this.careers = this.getCareerOptions();
 
-    this.cursorManager = CursorManager.getInstance();
+    this.cursorManager =
+      cursor ??
+      new CursorManagerAdapter(CursorManager.getInstance());
   }
 
   getCareerOptions(): CareerOption[] {

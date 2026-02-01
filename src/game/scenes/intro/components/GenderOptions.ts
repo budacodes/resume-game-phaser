@@ -4,7 +4,9 @@ import {
   GenderOption,
 } from "../../../../config/types/IntroTypes";
 import { INTRO_CONFIG } from "../config/IntroConfig";
+import { CursorPort } from "../../../../application/ports/CursorPort";
 import { CursorManager } from "../../../../managers/CursorManager";
+import { CursorManagerAdapter } from "../../../../infrastructure/adapters/CursorManagerAdapter";
 
 interface OptionContainerData {
   card: Phaser.GameObjects.Graphics;
@@ -24,21 +26,23 @@ export class GenderOptions {
   private onSelect: (gender: PlayerGender) => void;
   private onHover: (gender: PlayerGender) => void;
 
-  private cursorManager!: CursorManager;
+  private cursorManager!: CursorPort;
 
   constructor(
     scene: Scene,
     onSelect: (gender: PlayerGender) => void,
-    onHover: (gender: PlayerGender) => void
+    onHover: (gender: PlayerGender) => void,
+    cursor?: CursorPort,
   ) {
     this.scene = scene;
     this.onSelect = onSelect;
     this.onHover = onHover;
+    this.cursorManager =
+      cursor ??
+      new CursorManagerAdapter(CursorManager.getInstance());
   }
 
   create(): void {
-    this.cursorManager = CursorManager.getInstance();
-
     const genderOptions: GenderOption[] = [
       {
         key: "nonbinary",

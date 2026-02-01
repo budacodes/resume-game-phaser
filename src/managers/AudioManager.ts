@@ -361,16 +361,14 @@ export class AudioManager {
     this.scene.game.events.on(
       SettingsManager.EVENTS.VOLUME_CHANGED,
       (volumes: { music: number; sfx: number }) => {
-        this.updateVolumes(volumes);
+        void volumes;
+        this.updateVolumes();
       },
       this,
     );
   }
 
-  private updateVolumes(volumes?: {
-    music: number;
-    sfx: number;
-  }): void {
+  private updateVolumes(): void {
     const settings = this.settingsManager.getSettings();
 
     // Valores base salvos (0 a 1)

@@ -1,6 +1,8 @@
 // components/NameInput.ts
 import { Scene } from "phaser";
 import { AudioManager } from "../../../../managers/AudioManager";
+import { AudioPort } from "../../../../application/ports/AudioPort";
+import { AudioManagerAdapter } from "../../../../infrastructure/adapters/AudioManagerAdapter";
 
 export class NameInput {
   private scene: Scene;
@@ -18,16 +20,19 @@ export class NameInput {
   private inputText!: Phaser.GameObjects.Text;
   // private placeholderText!: Phaser.GameObjects.Text;
   private inputBackground!: Phaser.GameObjects.Graphics;
-  private audioManager!: AudioManager;
+  private audioManager!: AudioPort;
 
   constructor(
     scene: Scene,
-    onComplete: (name: string) => void
+    onComplete: (name: string) => void,
+    audio?: AudioPort,
   ) {
     this.scene = scene;
     this.onComplete = onComplete;
 
-    this.audioManager = new AudioManager(scene);
+    this.audioManager =
+      audio ??
+      new AudioManagerAdapter(new AudioManager(scene));
   }
 
   public create(): void {
@@ -405,6 +410,7 @@ export class NameInput {
     // Remove listeners do elemento DOM
     if (this.inputElement) {
       this.keyboardListeners.forEach((listener, key) => {
+        void key;
         this.inputElement.removeEventListener(
           "keydown",
           listener as any

@@ -71,6 +71,7 @@ export class TextManager {
     level: "small" | "normal" | "large",
     pixelSize: number
   ): void {
+    void level;
     // Atualiza todos os textos na cena
     this.scene.children.each((child: any) => {
       if (child.type === "Text" && child.__baseFontSize) {
