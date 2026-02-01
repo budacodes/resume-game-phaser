@@ -1,4 +1,5 @@
 import { Scene } from "phaser";
+import { COLORS } from "../../ui/Utils";
 import { INTRO_CONFIG } from "../config/IntroConfig";
 
 interface CodeChar {
@@ -34,7 +35,7 @@ export class CodeRainBackground {
 
     for (let i = 0; i < this.COLUMNS; i++) {
       this.columnPositions.push(
-        i * columnWidth + columnWidth / 2
+        i * columnWidth + columnWidth / 2,
       );
     }
   }
@@ -48,7 +49,7 @@ export class CodeRainBackground {
   private createCodeChar(): void {
     const columnIndex = Phaser.Math.Between(
       0,
-      this.COLUMNS - 1
+      this.COLUMNS - 1,
     );
     const x = this.columnPositions[columnIndex];
     const y = Phaser.Math.Between(-100, -50);
@@ -86,12 +87,11 @@ export class CodeRainBackground {
   private getRandomColor(): string {
     const colors = [
       INTRO_CONFIG.colors.budaGlow,
-      0x4cc9f0, // Azul claro
-      0x2ecc71, // Verde
-      0x9b59b6, // Roxo
-      0xe74c3c, // Vermelho
-      0xf1c40f, // Amarelo
-      0x1abc9c, // Turquesa
+      +`0x${COLORS.blue}`,
+      +`0x${COLORS.green}`,
+      +`0x${COLORS.red}`,
+      +`0x${COLORS.gold}`,
+      +`0x${COLORS.torquoise}`,
     ];
 
     const color =
@@ -171,7 +171,7 @@ export class CodeRainBackground {
     codeChar.text.setText(
       this.CODE_CHARS[
         Math.floor(Math.random() * this.CODE_CHARS.length)
-      ]
+      ],
     );
     codeChar.text.setColor(this.getRandomColor());
     codeChar.text.setFontSize(this.getRandomSize());
@@ -197,7 +197,7 @@ export class CodeRainBackground {
 
   private createExplosionEffect(
     x: number,
-    y: number
+    y: number,
   ): void {
     for (let i = 0; i < 8; i++) {
       const angle = (i / 8) * Math.PI * 2;
@@ -277,7 +277,7 @@ export class CodeRainBackground {
 
   destroy(): void {
     this.codeChars.forEach((codeChar) =>
-      codeChar.text.destroy()
+      codeChar.text.destroy(),
     );
     this.codeChars = [];
   }

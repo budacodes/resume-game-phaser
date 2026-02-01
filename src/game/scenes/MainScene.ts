@@ -3,6 +3,8 @@ import { Player } from "../../entities/Player";
 import { CursorManager } from "../../managers/CursorManager";
 import { MapManager } from "../../managers/MapManager";
 import { UIScene } from "./ui/UiScene";
+import { InventoryManager } from "../../managers/InventoryManager";
+import { AudioManager } from "../../managers/AudioManager";
 
 export class MainScene extends Scene {
   private player!: Player;
@@ -16,6 +18,7 @@ export class MainScene extends Scene {
   private coinSound!: Phaser.Sound.BaseSound;
   private waterDropSound!: Phaser.Sound.BaseSound;
   private doorOpenSound!: Phaser.Sound.BaseSound;
+  // private bgm!: Phaser.Sound.BaseSound;
 
   private itemsZone!: Phaser.Physics.Arcade.StaticGroup;
   private currentInteractiveObject: Phaser.GameObjects.Zone | null =
@@ -30,9 +33,11 @@ export class MainScene extends Scene {
     | "down"
     | "right"
     | "left" = "down";
-
-  private refuseCount: number = 0;
   private isPlayerReady: boolean = false;
+
+  private inventoryManager!: InventoryManager;
+
+  private audio!: AudioManager;
 
   constructor() {
     super("MainScene");
@@ -47,8 +52,12 @@ export class MainScene extends Scene {
   }
 
   create() {
+    this.audio = AudioManager.getInstance(this);
+
     this.mapManager = new MapManager(this);
     this.mapManager.init("hub");
+
+    this.inventoryManager = InventoryManager.getInstance();
 
     this.game.events.emit("scene-changed", "MainScene");
 
@@ -80,7 +89,7 @@ export class MainScene extends Scene {
 
   private createPlayer() {
     const spawn = this.mapManager.getSpawnPoint(
-      this.targetSpawn
+      this.targetSpawn,
     ) || {
       x: 100,
       y: 100,
@@ -95,7 +104,7 @@ export class MainScene extends Scene {
       this,
       spawn.x,
       spawn.y,
-      playerSprite
+      playerSprite,
     );
 
     if (this.uiScene) {
@@ -107,7 +116,7 @@ export class MainScene extends Scene {
     if (this.mapManager.colliders.length > 0) {
       this.physics.add.collider(
         this.player,
-        this.mapManager.colliders
+        this.mapManager.colliders,
       );
     }
 
@@ -115,17 +124,15 @@ export class MainScene extends Scene {
       this.player,
       true,
       0.09,
-      0.09
+      0.09,
     );
   }
 
   update() {
-    console.log("isReading:", this.isReading);
-
     if (!this.isPlayerReady) return;
 
     if (this.isQuestionMode) {
-      this.handleQuestionInput();
+      this.handleFountainQuestionInput();
       return;
     }
 
@@ -144,28 +151,36 @@ export class MainScene extends Scene {
     this.coinSound = this.sound.add("snd_coin", {
       volume: 0.5,
     });
+
     this.waterDropSound = this.sound.add("snd_water_drop", {
       volume: 1,
     });
+
     this.doorOpenSound = this.sound.add("snd_door_open", {
       volume: 1,
       seek: 3,
     });
 
+    // this.bgm.play();
+    this.audio.playMusic("bgm_hub", {
+      volume: 1,
+      loop: true,
+    });
+
     if (this.input.keyboard) {
       this.keyE = this.input.keyboard.addKey(
-        Phaser.Input.Keyboard.KeyCodes.E
+        Phaser.Input.Keyboard.KeyCodes.E,
       );
       this.keyY = this.input.keyboard.addKey(
-        Phaser.Input.Keyboard.KeyCodes.Y
+        Phaser.Input.Keyboard.KeyCodes.Y,
       );
       this.keyN = this.input.keyboard.addKey(
-        Phaser.Input.Keyboard.KeyCodes.N
+        Phaser.Input.Keyboard.KeyCodes.N,
       );
     }
 
     this.interactionPrompt = this.add
-      .sprite(0, 0, "btn-e")
+      .sprite(0, -56, "btn-e")
       .setDepth(100)
       .setVisible(false);
   }
@@ -189,7 +204,7 @@ export class MainScene extends Scene {
         x,
         y,
         width + padding,
-        height + padding
+        height + padding,
       );
       zone.setData("tiledData", obj);
       this.itemsZone.add(zone);
@@ -210,7 +225,7 @@ export class MainScene extends Scene {
       ease: "Quad.easeInOut",
       onUpdate: (
         tween,
-        target: Phaser.GameObjects.Sprite
+        target: Phaser.GameObjects.Sprite,
       ) => {
         const currentScale = target.scaleY;
         const calculatedOffset = (1 - currentScale) * 10;
@@ -238,10 +253,25 @@ export class MainScene extends Scene {
         this.currentInteractiveObject =
           zone as Phaser.GameObjects.Zone;
         isOverlapping = true;
-      }
+      },
     );
 
+    const actionType = this.getTiledProperty(
+      this.currentInteractiveObject?.getData("tiledData"),
+      "actionType",
+    );
+
+    const isSilentInteraction =
+      actionType === "insanos_flag";
+
     if (isOverlapping && this.currentInteractiveObject) {
+      if (isSilentInteraction) {
+        this.handleInsanosFlagInteraction(
+          this.currentInteractiveObject,
+        );
+        return;
+      }
+
       if (!this.interactionPrompt.visible) {
         this.interactionPrompt.setVisible(true);
         this.startPromptLoop();
@@ -252,7 +282,7 @@ export class MainScene extends Scene {
 
       this.interactionPrompt.setPosition(
         this.player.x,
-        this.player.y - 15 + animOffset
+        this.player.y - 24 + animOffset,
       );
 
       if (
@@ -281,14 +311,37 @@ export class MainScene extends Scene {
       case "fountain":
         this.handleFountainInteraction();
         break;
+      case "found_coin":
+        this.handleFoundCoinInteraction();
+        break;
       case "warp":
         this.handleWarpAction(data);
         break;
       default:
         console.warn(
-          `Ação desconhecida para o tipo: ${type}`
+          `Ação desconhecida para o tipo: ${type}`,
         );
     }
+  }
+
+  private handleFoundCoinInteraction() {
+    if (this.inventoryManager.hasItem("coin")) {
+      this.game.events.emit("dialog-started", {
+        text: "Não há nada aqui...",
+        hint: "[ ESPAÇO para fechar ]",
+        mode: "read",
+      });
+
+      return;
+    }
+
+    this.inventoryManager.obtainItem("coin");
+
+    this.game.events.emit("dialog-started", {
+      text: "Você encontrou uma moeda!",
+      hint: "[ ESPAÇO para fechar ]",
+      mode: "read",
+    });
   }
 
   private handleWarpAction(data: any) {
@@ -296,15 +349,15 @@ export class MainScene extends Scene {
       mapKey: this.getTiledProperty(data, "mapKey"),
       facingDirection: this.getTiledProperty(
         data,
-        "facingDirection"
+        "facingDirection",
       ),
       targetScene: this.getTiledProperty(
         data,
-        "targetScene"
+        "targetScene",
       ),
       targetSpawn: this.getTiledProperty(
         data,
-        "targetSpawn"
+        "targetSpawn",
       ),
     };
 
@@ -321,7 +374,7 @@ export class MainScene extends Scene {
             facingDirection:
               sceneProperties.facingDirection,
           });
-        }
+        },
       );
     }
   }
@@ -334,25 +387,79 @@ export class MainScene extends Scene {
   }
 
   private handleFountainInteraction() {
-    this.isQuestionMode = true;
+    if (this.inventoryManager.hasItem("coin")) {
+      this.isQuestionMode = true;
 
-    this.game.events.emit("dialog-started", {
-      text: "A fonte emite uma aura estranha...\nDeseja jogar uma moeda?\n\n[Y] Sim [N] Não",
-      mode: "question",
-    });
+      this.game.events.emit("dialog-started", {
+        text: "A fonte emite uma aura estranha...\nDeseja jogar uma moeda?\n\n[Y] Sim [N] Não",
+        mode: "question",
+      });
+    } else {
+      this.game.events.emit("dialog-started", {
+        text: "A fonte emite uma aura estranha...\nParece até pedir algo...",
+        hint: "[ ESPAÇO para fechar ]",
+        mode: "read",
+      });
+    }
   }
 
-  private handleQuestionInput() {
+  private handleInsanosFlagInteraction(
+    zone: Phaser.GameObjects.Zone,
+  ) {
+    // Segurança extra
+    if (this.registry.get("insanos_flag_seen")) return;
+
+    this.registry.set("insanos_flag_seen", true);
+
+    // Para o player brevemente
+    this.player.stopMovement();
+
+    // Abaixa música atual
+    this.audio.fadeOutMusic(600);
+
+    this.time.delayedCall(600, () => {
+      console.log("tocou fx");
+      this.audio.playSFX("snd_flag", {
+        volume: 1.5,
+      });
+
+      this.audio.playSFX("snd_motorcycle", {
+        volume: 0.8,
+      });
+
+      this.audio.playSFX("snd_wind", {
+        volume: 1.5,
+      });
+
+      this.game.events.emit("dialog-started", {
+        text: "Algumas bandeiras não se explicam.",
+        mode: "read",
+      });
+    });
+
+    this.time.delayedCall(6000, () => {
+      this.inventoryManager.obtainItem("issi_pin");
+
+      this.game.events.emit("hide-dialog");
+
+      this.audio.fadeInMusic("bgm_hub", 3000);
+    });
+
+    // Nunca mais dispara
+    zone.destroy();
+  }
+
+  private handleFountainQuestionInput() {
     if (Phaser.Input.Keyboard.JustDown(this.keyY)) {
       this.coinSound.play();
       setTimeout(() => this.waterDropSound.play(), 400);
 
+      this.inventoryManager.removeItem("coin");
+
       this.game.events.emit("dialog-started", {
-        hint: "[ ESPAÇO para continuar ]",
+        hint: "[ ESPAÇO para fechar ]",
         text: "Você fez um pedido silencioso...",
       });
-
-      // this.dialogBox.setHint("[ ESPAÇO para continuar ]");
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.keyN)) {
@@ -362,12 +469,12 @@ export class MainScene extends Scene {
 
   private getTiledProperty(
     obj: any,
-    propName: string
+    propName: string,
   ): any {
     if (!obj || !obj.properties) return null;
     if (Array.isArray(obj.properties)) {
       const prop = obj.properties.find(
-        (p: any) => p.name === propName
+        (p: any) => p.name === propName,
       );
       return prop ? prop.value : null;
     } else {

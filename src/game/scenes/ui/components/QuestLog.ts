@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { CursorManager } from "../../../../managers/CursorManager";
 import { QuestManager } from "../../../../managers/QuestManager";
+import { COLORS } from "../Utils";
 
 // Interface para estruturar as missões
 interface Quest {
@@ -13,6 +14,8 @@ interface Quest {
 export class QuestLog {
   private scene: Phaser.Scene;
   private container: Phaser.GameObjects.Container;
+  private opened = false;
+
   public isVisible = false;
 
   private readonly panelWidth = 520;
@@ -33,16 +36,43 @@ export class QuestLog {
     this.create();
   }
 
+  public open(): void {
+    if (this.isVisible) return;
+
+    this.isVisible = true;
+
+    // 1. Atualiza dados antes de mostrar
+    // this.updateLocalSettingsFromManager();
+
+    // 2. Reconstrói UI com valores atualizados
+    this.container.removeAll(true);
+    this.create();
+
+    // 3. Cursor sempre correto
+    const cursor = CursorManager.getInstance();
+    cursor.setScene(this.scene);
+    cursor.showCursor();
+
+    // 4. Mostra container
+    this.container.setVisible(true);
+  }
+
+  public close(): void {
+    if (!this.isVisible) return;
+
+    this.isVisible = false;
+
+    // Opcional: limpar foco / estados internos aqui
+
+    this.container.setVisible(false);
+  }
+
+  public isOpen(): boolean {
+    return this.opened;
+  }
+
   public toggle(): void {
-    this.isVisible = !this.isVisible;
-
-    if (this.isVisible) {
-      this.container.removeAll(true);
-      this.create();
-      this.cursorManager.setScene(this.scene);
-    }
-
-    this.container.setVisible(this.isVisible);
+    this.isVisible ? this.close() : this.open();
   }
 
   private create(): void {
@@ -62,7 +92,7 @@ export class QuestLog {
         width / scaleToApply,
         height / scaleToApply,
         0x000000,
-        0.7
+        0.7,
       )
       .setOrigin(0.5)
       .setInteractive();
@@ -76,7 +106,7 @@ export class QuestLog {
       this.panelWidth,
       520,
       0x0b0b0b,
-      0.95
+      0.95,
     );
     background.setStrokeStyle(2, 0xffffff, 1);
     background.setOrigin(0.5).setInteractive();
@@ -87,13 +117,13 @@ export class QuestLog {
       .text(0, -220, "DIÁRIO DE MISSÕES", {
         fontFamily: "'VT323'",
         fontSize: "32px",
-        color: "#f39c12", // Cor dourada para quests
+        color: `#${COLORS.gold}`, // Cor dourada para quests
       })
       .setOrigin(0.5);
     this.container.add(title);
 
     const questManager = QuestManager.getInstance(
-      this.scene.game
+      this.scene.game,
     );
     const currentQuests = questManager.getAllQuests();
 
@@ -112,7 +142,7 @@ export class QuestLog {
 
     closeButton.on("pointerover", () => {
       this.cursorManager.setState("hover");
-      closeButton.setTintFill(0xe74c3c);
+      closeButton.setTintFill(+`0x${COLORS.red}`);
     });
     closeButton.on("pointerout", () => {
       this.cursorManager.setState("default");
@@ -132,7 +162,7 @@ export class QuestLog {
       .rectangle(startX + 10, y, 24, 24, 0x333333)
       .setStrokeStyle(
         2,
-        quest.isCompleted ? 0x2ecc71 : 0x999999
+        quest.isCompleted ? +`0x${COLORS.green}` : 0x999999,
       );
     elements.push(statusBox);
 
@@ -141,7 +171,7 @@ export class QuestLog {
         .text(startX + 10, y - 6, "x", {
           fontSize: "42px",
           fontFamily: "'VT323'",
-          color: "#2ecc71",
+          color: `#${COLORS.green}`,
         })
         .setOrigin(0.5);
       elements.push(check);
@@ -153,7 +183,7 @@ export class QuestLog {
           y - 12,
           textWidth,
           2,
-          0x888888
+          0x888888,
         )
         .setOrigin(0, 0.5);
 
@@ -188,7 +218,7 @@ export class QuestLog {
       this.panelWidth - 40,
       1,
       0xffffff,
-      0.1
+      0.1,
     );
     elements.push(separator);
 

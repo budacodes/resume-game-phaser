@@ -1,19 +1,28 @@
 import { Scene } from "phaser";
 import { SettingsManager } from "../../../../managers/SettingsManager";
-
+import BBCodeText from "phaser3-rex-plugins/plugins/bbcodetext.js";
 export class DialogBox {
   private scene: Scene;
   private container: Phaser.GameObjects.Container;
-  private textContent: Phaser.GameObjects.Text;
+  private textContent: BBCodeText;
   private typingTimer?: Phaser.Time.TimerEvent;
   public size: { width: number; height: number };
 
   private hint: Phaser.GameObjects.Text; // Novo campo
 
+  private bg!: Phaser.GameObjects.Graphics;
+  private shadow!: Phaser.GameObjects.Graphics;
+
+  private readonly PADDING_TOP = 25;
+  private readonly PADDING_BOTTOM = 30;
+  private readonly PADDING_HORIZONTAL = 25;
+  private readonly HINT_HEIGHT = 20;
+  private readonly MIN_HEIGHT = 120;
+
   constructor(
     scene: Scene,
-    width: number = 400,
-    height: number = 150
+    width: number = 500,
+    height: number = 150,
   ) {
     this.scene = scene;
     this.size = { width, height };
@@ -26,19 +35,27 @@ export class DialogBox {
 
     // Pegamos as configurações atuais
     const settings = SettingsManager.getInstance(
-      this.scene.game
+      this.scene.game,
     ).getSettings();
 
     // Texto com escala de fonte aplicada
     const fontSize = 16 + settings.fontSize * 8; // Ex: 0 -> 16px, 1 -> 24px
 
-    this.textContent = this.scene.add.text(0, 0, "", {
-      fontFamily: "VT323",
-      fontSize: `${fontSize}px`,
-      color: "#ffffff",
-      wordWrap: { width: width - 50 },
-      lineSpacing: 8,
-    });
+    this.textContent = new BBCodeText(
+      this.scene,
+      0,
+      0,
+      "",
+      {
+        fontFamily: "VT323",
+        fontSize: `${fontSize}px`,
+        color: "#ffffff",
+        wrap: {
+          width: width - this.PADDING_HORIZONTAL * 2,
+        },
+        lineSpacing: 8,
+      },
+    );
 
     this.hint = this.scene.add
       .text(0, 0, "[ ESPAÇO para continuar ]", {
@@ -58,8 +75,29 @@ export class DialogBox {
       (newSettings: any) => {
         this.applyScale(newSettings.uiScale);
         this.updateFontSize(newSettings.fontSize);
-      }
+      },
     );
+  }
+
+  private calculateHeightFromText(text: string): number {
+    // Texto temporário para cálculo
+    this.textContent.setText(text);
+
+    // Força update do BBCodeText
+    this.textContent.updateText();
+
+    const bounds = this.textContent.getBounds();
+    const textHeight = bounds.height;
+
+    let totalHeight =
+      this.PADDING_TOP + textHeight + this.PADDING_BOTTOM;
+
+    // Se o hint estiver visível, reserva espaço
+    if (this.hint.visible) {
+      totalHeight += this.HINT_HEIGHT;
+    }
+
+    return Math.max(totalHeight, this.MIN_HEIGHT);
   }
 
   clearText(): void {
@@ -73,33 +111,33 @@ export class DialogBox {
   private createBox(): void {
     const { width, height } = this.size;
 
-    const shadow = this.scene.add.graphics();
-    shadow
+    this.shadow = this.scene.add.graphics();
+    this.shadow
       .fillStyle(0x000000, 0.5)
       .fillRoundedRect(
         -width / 2 + 4,
         -height / 2 + 4,
         width,
         height,
-        12
+        12,
       );
 
-    const bg = this.scene.add.graphics();
-    bg.fillStyle(0x222222, 0.9); // Cor padrão escura
-    bg.lineStyle(2, 0xffffff, 0.8);
-    bg.fillRoundedRect(
+    this.bg = this.scene.add.graphics();
+    this.bg.fillStyle(0x222222, 0.9); // Cor padrão escura
+    this.bg.lineStyle(2, 0xffffff, 0.8);
+    this.bg.fillRoundedRect(
       -width / 2,
       -height / 2,
       width,
       height,
-      12
+      12,
     );
-    bg.strokeRoundedRect(
+    this.bg.strokeRoundedRect(
       -width / 2,
       -height / 2,
       width,
       height,
-      12
+      12,
     );
 
     // Posicionar o prompt na parte inferior interna da caixa
@@ -108,12 +146,12 @@ export class DialogBox {
     this.textContent.setOrigin(0, 0);
     this.textContent.setPosition(
       -width / 2 + 25,
-      -height / 2 + 25
+      -height / 2 + 25,
     );
 
     this.container.add([
-      shadow,
-      bg,
+      this.shadow,
+      this.bg,
       this.textContent,
       this.hint,
     ]);
@@ -121,7 +159,58 @@ export class DialogBox {
     // Centraliza na base da tela por padrão
     this.container.setPosition(
       this.scene.scale.width / 2,
-      this.scene.scale.height - height / 2 - 40
+      this.scene.scale.height - height / 2 - 40,
+    );
+  }
+
+  private resize(height: number): void {
+    this.size.height = height;
+
+    const { width } = this.size;
+
+    this.shadow.clear();
+    this.shadow
+      .fillStyle(0x000000, 0.5)
+      .fillRoundedRect(
+        -width / 2 + 4,
+        -height / 2 + 4,
+        width,
+        height,
+        12,
+      );
+
+    this.bg.clear();
+    this.bg
+      .fillStyle(0x222222, 0.9)
+      .lineStyle(2, 0xffffff, 0.8)
+      .fillRoundedRect(
+        -width / 2,
+        -height / 2,
+        width,
+        height,
+        12,
+      )
+      .strokeRoundedRect(
+        -width / 2,
+        -height / 2,
+        width,
+        height,
+        12,
+      );
+
+    // Reposiciona texto
+    this.textContent.setPosition(
+      -width / 2 + 25,
+      -height / 2 + 25,
+    );
+
+    // Reposiciona hint
+    this.hint.setPosition(0, height / 2 - 15);
+
+    // Reposiciona container na tela
+    this.container.setPosition(
+      this.scene.scale.width / 2,
+      this.scene.scale.height - height / 2 - 40,
     );
   }
 
@@ -182,10 +271,19 @@ export class DialogBox {
 
   public show(text: string): void {
     this.stopTyping(); // Garante que qualquer timer interno antigo morra
+
+    const height = this.calculateHeightFromText(text);
+    this.resize(height);
+
     this.container.setVisible(true);
     this.textContent.setText(text);
 
-    // this.startTyping(text); // Começa vazio para o TextTyper preencher
+    this.scene.tweens.add({
+      targets: this.container,
+      scaleY: { from: 0, to: 1 },
+      duration: 500,
+      ease: "Back.Out",
+    });
   }
 
   public hide(): void {

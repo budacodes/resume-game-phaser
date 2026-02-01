@@ -28,7 +28,7 @@ export const LAYER_CONFIG: Record<
 
   Buildings_Base: { depth: DEPTH.WALLS, collides: true }, // Paredes colidem
   Buildings_Top: { depth: DEPTH.ROOF, collides: false }, // Paredes colidem
-  Fountain_Back: { depth: DEPTH.HIGH_OBJ, collides: false },
+  Fountain_Back: { depth: DEPTH.HIGH_OBJ, collides: true },
   Trees_Back: { depth: DEPTH.HIGH_OBJ, collides: false },
 
   Fountain_Front: { depth: DEPTH.HIGH_OBJ, collides: false }, // Colide mas desenha na frente

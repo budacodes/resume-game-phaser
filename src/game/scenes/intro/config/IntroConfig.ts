@@ -1,6 +1,4 @@
-import { IntroConfig } from "../../../../config/types/IntroTypes";
-
-export const INTRO_CONFIG: IntroConfig = {
+export const INTRO_CONFIG = {
   colors: {
     background: 0x333333,
     textBox: 0x000000,

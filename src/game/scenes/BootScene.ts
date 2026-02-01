@@ -5,69 +5,82 @@ export class BootScene extends Scene {
     super("BootScene");
   }
 
+  preloadPlugins(): void {
+    this.load.plugin(
+      "rexvirtualjoystickplugin",
+      "https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexvirtualjoystickplugin.min.js",
+      true,
+    );
+
+    this.load.plugin(
+      "rexbbcodetextplugin",
+      "https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexbbcodetextplugin.min.js",
+      true,
+    );
+  }
+
   preloadMusic(): void {
     this.load.audio(
       "bgm_hub",
-      "assets/sounds/music/bg_music.wav"
+      "assets/sounds/music/bg_music.wav",
     );
 
     this.load.audio(
       "intro_music",
-      "assets/sounds/music/intro.wav"
+      "assets/sounds/music/intro.wav",
     );
   }
 
   preloadImages(): void {
     this.load.image(
       "male-face",
-      "assets/sprites/faces/male-face.png"
+      "assets/sprites/faces/male-face.png",
     );
 
     this.load.image(
       "female-face",
-      "assets/sprites/faces/female-face.png"
+      "assets/sprites/faces/female-face.png",
     );
 
     this.load.image(
       "nonbinary-face",
-      "assets/sprites/faces/nonbinary-face.png"
+      "assets/sprites/faces/nonbinary-face.png",
     );
 
     this.load.image(
       "frame-gold",
-      "assets/ui/frame-gold.png"
+      "assets/ui/frame-gold.png",
     );
 
     this.load.image("btn-e", "assets/ui/key_e.png");
 
     this.load.image(
       "icon_sound_on",
-      "assets/ui/icon_sound_on.png"
+      "assets/ui/icon_sound_on.png",
     );
 
     this.load.image(
       "icon_sound_off",
-      "assets/ui/icon_sound_off.png"
+      "assets/ui/icon_sound_off.png",
     );
 
-    this.load.image(
-      "settings",
-      "assets/ui/settings.png"
-    );
+    this.load.image("settings", "assets/ui/settings.png");
 
     this.load.image("expand", "assets/ui/expand.png");
 
     this.load.image("minimize", "assets/ui/minimize.png");
 
     this.load.image("close", "assets/ui/close.png");
-    
+
     this.load.image("questlog", "assets/ui/questlog.png");
+
+    this.load.image("inventory", "assets/ui/inventory.png");
 
     this.load.image("img_signs", "assets/map/signs.png");
 
     this.load.image(
       "tiles_interiors",
-      "assets/map/interiors.png"
+      "assets/map/interiors.png",
     );
     this.load.image("tiles_builder", "assets/map/room.png");
 
@@ -81,7 +94,7 @@ export class BootScene extends Scene {
       {
         frameWidth: 16,
         frameHeight: 32,
-      }
+      },
     );
 
     this.load.spritesheet(
@@ -90,7 +103,7 @@ export class BootScene extends Scene {
       {
         frameWidth: 16,
         frameHeight: 27,
-      }
+      },
     );
 
     this.load.spritesheet(
@@ -99,7 +112,7 @@ export class BootScene extends Scene {
       {
         frameWidth: 16,
         frameHeight: 32,
-      }
+      },
     );
 
     this.load.spritesheet(
@@ -108,7 +121,7 @@ export class BootScene extends Scene {
       {
         frameWidth: 16,
         frameHeight: 32,
-      }
+      },
     );
 
     this.load.spritesheet(
@@ -117,7 +130,7 @@ export class BootScene extends Scene {
       {
         frameWidth: 18,
         frameHeight: 29,
-      }
+      },
     );
 
     this.load.spritesheet(
@@ -126,19 +139,19 @@ export class BootScene extends Scene {
       {
         frameWidth: 18,
         frameHeight: 29,
-      }
+      },
     );
 
     this.load.spritesheet(
       "buda-idle",
       "assets/sprites/buda_idle.png",
-      { frameWidth: 379, frameHeight: 613 }
+      { frameWidth: 379, frameHeight: 613 },
     );
 
     this.load.spritesheet(
       "buda-talking",
       "assets/sprites/buda_talking.png",
-      { frameWidth: 483, frameHeight: 613 }
+      { frameWidth: 483, frameHeight: 613 },
     );
 
     this.load.spritesheet(
@@ -149,7 +162,7 @@ export class BootScene extends Scene {
         frameHeight: 42, // Altura de cada frame
         startFrame: 0,
         endFrame: 2, // Total de frames - 1 (0 a 2)
-      }
+      },
     );
 
     this.load.spritesheet(
@@ -160,7 +173,7 @@ export class BootScene extends Scene {
         frameHeight: 128, // Altura de cada frame
         startFrame: 0,
         endFrame: 13, // Total de frames - 1 (0 a 2)
-      }
+      },
     );
 
     this.load.spritesheet(
@@ -169,7 +182,25 @@ export class BootScene extends Scene {
       {
         frameWidth: 768, // Largura de cada frame
         frameHeight: 448, // Altura de cada frame
-      }
+      },
+    );
+
+    this.load.spritesheet(
+      "coin_flip",
+      "assets/sprites/coin_flip.png",
+      {
+        frameWidth: 16, // Largura de cada frame
+        frameHeight: 16, // Altura de cada frame
+      },
+    );
+    
+    this.load.spritesheet(
+      "issi_pin",
+      "assets/sprites/pin_insanos_16x16.png",
+      {
+        frameWidth: 16, // Largura de cada frame
+        frameHeight: 16, // Altura de cada frame
+      },
     );
 
     this.load.spritesheet(
@@ -178,81 +209,86 @@ export class BootScene extends Scene {
       {
         frameWidth: 224, // Largura de cada frame
         frameHeight: 199, // Altura de cada frame
-      }
+      },
     );
   }
 
   preloadAudios(): void {
     this.load.audio("snd_coin", "assets/sounds/coin.wav");
 
+    this.load.audio("snd_flag", "assets/sounds/snd_flag.wav");
+    this.load.audio(
+      "snd_motorcycle",
+      "assets/sounds/snd_motorcycle.wav",
+    );
+    this.load.audio("snd_wind", "assets/sounds/snd_wind.wav");
+
     this.load.audio(
       "snd_door_open",
-      "assets/sounds/door_open.wav"
+      "assets/sounds/door_open.wav",
     );
 
     this.load.audio(
       "snd_water_drop",
-      "assets/sounds/water_drop.wav"
+      "assets/sounds/water_drop.wav",
     );
 
     this.load.audio("snd_error", "assets/sounds/error.wav");
 
     this.load.audio("typing", "assets/sounds/typing.wav");
-    
-    this.load.audio("delete_char", "assets/sounds/delete_char.wav");
+
+    this.load.audio(
+      "delete_char",
+      "assets/sounds/delete_char.wav",
+    );
 
     this.load.audio(
       "speech_1",
-      "assets/sounds/speech_1.wav"
+      "assets/sounds/speech_1.wav",
     );
     this.load.audio(
       "speech_2",
-      "assets/sounds/speech_2.wav"
+      "assets/sounds/speech_2.wav",
     );
     this.load.audio(
       "speech_3",
-      "assets/sounds/speech_3.wav"
+      "assets/sounds/speech_3.wav",
     );
     this.load.audio(
       "speech_4",
-      "assets/sounds/speech_4.wav"
+      "assets/sounds/speech_4.wav",
     );
 
     this.load.audio(
       "snd_select",
-      "assets/sounds/select.mp3"
+      "assets/sounds/select.mp3",
     );
 
     this.load.audio(
       "snd_confirm",
-      "assets/sounds/confirm.wav"
+      "assets/sounds/confirm.wav",
     );
   }
 
   preloadTilemaps(): void {
     this.load.tilemapTiledJSON(
       "hub",
-      "assets/map/hub.json"
+      "assets/map/hub.json",
     );
 
     this.load.tilemapTiledJSON(
       "office",
-      "assets/map/office.json"
+      "assets/map/office.json",
     );
 
     this.load.tilemapTiledJSON(
       "office_2nd_floor",
-      "assets/map/office_2nd_floor.json"
+      "assets/map/office_2nd_floor.json",
     );
   }
 
   preload() {
-    this.load.plugin(
-      "rexvirtualjoystickplugin",
-      "https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexvirtualjoystickplugin.min.js",
-      true
-    );
-
+    this.preloadPlugins();
     this.preloadAudios();
     this.preloadImages();
     this.preloadSpritesheets();
@@ -296,7 +332,7 @@ export class BootScene extends Scene {
       0xb8860b,
       1, // Bottom-left: dark goldenrod
       0x8b6514,
-      1 // Bottom-right: golden brown
+      1, // Bottom-right: golden brown
     );
     graphics.fillRect(0, 0, width, height);
 
@@ -341,7 +377,7 @@ export class BootScene extends Scene {
         width / 2 - 150,
         height / 2 - 15,
         300 * value,
-        30
+        30,
       );
     });
 

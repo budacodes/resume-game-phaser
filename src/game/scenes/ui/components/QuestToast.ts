@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { COLORS } from "../Utils";
 
 export class QuestToast {
   private scene: Phaser.Scene;
@@ -8,7 +9,7 @@ export class QuestToast {
     this.scene = scene;
     this.container = this.scene.add.container(
       this.scene.scale.width / 2,
-      -100
+      -100,
     );
     this.container.setScrollFactor(0);
     this.container.setDepth(1000); // Sempre acima de tudo
@@ -22,17 +23,13 @@ export class QuestToast {
       300,
       60,
       0x0b0b0b,
-      0.9
+      0.9,
     );
-    bg.setStrokeStyle(2, 0x2ecc71); // Borda verde para sucesso
+    bg.setStrokeStyle(2, +`0x${COLORS.green}`);
 
     // 2. Ícone de check
     const icon = this.scene.add
       .sprite(-130, 0, "check_icon")
-      // .text(-130, 0, "✔", {
-      //   fontSize: "24px",
-      //   color: "#2ecc71",
-      // })
       .setOrigin(0, 0.5);
 
     // 3. Texto da missão
@@ -40,7 +37,7 @@ export class QuestToast {
       .text(-90, -10, "MISSÃO CONCLUÍDA!", {
         fontFamily: "'VT323'",
         fontSize: "16px",
-        color: "#2ecc71",
+        color: `#${COLORS.green}`,
       })
       .setOrigin(0, 0.5);
 

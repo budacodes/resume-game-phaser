@@ -2,6 +2,7 @@
 import Phaser from "phaser";
 import { PlayerGender } from "../config/types/IntroTypes";
 import { CareerOptions } from "../game/scenes/intro/components/CareerOptions";
+import { COLORS } from "../game/scenes/ui/Utils";
 
 export interface IdCardData {
   name: string;
@@ -28,7 +29,7 @@ export class IdCard extends Phaser.GameObjects.Container {
     scene: Phaser.Scene,
     x: number,
     y: number,
-    config: IdCardData
+    config: IdCardData,
   ) {
     super(scene, x, y);
 
@@ -60,7 +61,7 @@ export class IdCard extends Phaser.GameObjects.Container {
     this.createRoleText(
       CareerOptions.prototype
         .getCareerOptions()
-        .find((career) => career.id === config.role!).title
+        .find((career) => career.id === config.role!).title,
     );
 
     // 5. TEXTO - ID
@@ -83,7 +84,7 @@ export class IdCard extends Phaser.GameObjects.Container {
       -this.CARD_HEIGHT / 2,
       this.CARD_WIDTH,
       this.CARD_HEIGHT,
-      15
+      15,
     );
 
     // Sombra interna
@@ -93,7 +94,7 @@ export class IdCard extends Phaser.GameObjects.Container {
       -this.CARD_HEIGHT / 2 + 3,
       this.CARD_WIDTH - 6,
       this.CARD_HEIGHT - 6,
-      12
+      12,
     );
 
     // Faixa de título
@@ -103,7 +104,7 @@ export class IdCard extends Phaser.GameObjects.Container {
       -this.CARD_HEIGHT / 2,
       this.CARD_WIDTH,
       40,
-      { tl: 15, tr: 15, bl: 0, br: 0 }
+      { tl: 15, tr: 15, bl: 0, br: 0 },
     );
 
     // Título "CRACHÁ DE ACESSO"
@@ -117,7 +118,7 @@ export class IdCard extends Phaser.GameObjects.Container {
         color: "#FFFFFF",
         fontStyle: "bold",
         letterSpacing: 2,
-      }
+      },
     );
 
     this.add([this.background, title]);
@@ -125,14 +126,14 @@ export class IdCard extends Phaser.GameObjects.Container {
 
   private createFace(
     faceTexture: string,
-    gender: PlayerGender
+    gender: PlayerGender,
   ): void {
     const faceX = -this.CARD_WIDTH / 2 + 80;
     const faceY = 15;
 
     this.faceContainer = this.scene.add.container(
       faceX,
-      faceY
+      faceY,
     );
 
     // Moldura no estilo FaceFrame (sem borda dourada)
@@ -148,7 +149,7 @@ export class IdCard extends Phaser.GameObjects.Container {
       -frameHeight / 2,
       frameWidth,
       frameHeight,
-      10
+      10,
     );
 
     // Borda externa colorida (baseada no gênero)
@@ -158,7 +159,7 @@ export class IdCard extends Phaser.GameObjects.Container {
       -frameHeight / 2,
       frameWidth,
       frameHeight,
-      10
+      10,
     );
 
     // Borda interna fina
@@ -168,7 +169,7 @@ export class IdCard extends Phaser.GameObjects.Container {
       -frameHeight / 2 + 2,
       frameWidth - 4,
       frameHeight - 4,
-      8
+      8,
     );
 
     // Rosto (usa mesma lógica do FaceFrame)
@@ -177,7 +178,7 @@ export class IdCard extends Phaser.GameObjects.Container {
         .sprite(0, 0, faceTexture)
         .setDisplaySize(
           this.FACE_SIZE - 10,
-          this.FACE_SIZE - 10
+          this.FACE_SIZE - 10,
         )
         .setAlpha(1);
       this.faceContainer.add(faceSprite);
@@ -201,7 +202,7 @@ export class IdCard extends Phaser.GameObjects.Container {
         color: "#FFFFFF",
         fontStyle: "bold",
         letterSpacing: 1,
-      }
+      },
     );
 
     // Sombra para legibilidade
@@ -222,7 +223,7 @@ export class IdCard extends Phaser.GameObjects.Container {
         fontFamily: "VT323",
         color: "#CCCCCC",
         fontStyle: "italic",
-      }
+      },
     );
     this.add(this.roleText);
   }
@@ -249,12 +250,12 @@ export class IdCard extends Phaser.GameObjects.Container {
       {
         fontSize: "16px",
         fontFamily: "VT323",
-        color: "#88FF88",
+        color: `#${COLORS.green}`,
         backgroundColor: "rgba(0, 30, 0, 0.7)",
         padding: { left: 10, right: 10, top: 5, bottom: 5 },
         letterSpacing: 3,
         align: "center",
-      }
+      },
     );
     this.add(this.idText);
   }
@@ -270,11 +271,11 @@ export class IdCard extends Phaser.GameObjects.Container {
       {
         fontSize: "12px",
         fontFamily: "VT323",
-        color: "#FFD700", // Dourado
+        color: `#${COLORS.gold}`,
         backgroundColor: "rgba(0, 0, 0, 0.9)",
         padding: { left: 10, right: 10, top: 5, bottom: 5 },
         align: "center",
-      }
+      },
     );
 
     this.add(this.levelText);
@@ -289,7 +290,7 @@ export class IdCard extends Phaser.GameObjects.Container {
       -this.CARD_WIDTH / 2 + 165,
       -this.CARD_HEIGHT / 2 + 60,
       -this.CARD_WIDTH / 2 + 165,
-      this.CARD_HEIGHT / 2 - 20
+      this.CARD_HEIGHT / 2 - 20,
     );
 
     // Código de barras simulado
@@ -308,9 +309,9 @@ export class IdCard extends Phaser.GameObjects.Container {
 
   private getColorByGender(gender: PlayerGender): number {
     const colors = {
-      male: 0x1a3b5c, // Azul escuro
-      female: 0x5c1a3b, // Roxo escuro
-      nonbinary: 0x3b5c1a, // Verde escuro
+      male: +`0x${COLORS.blue}`,
+      female: +`0x${COLORS.red}`,
+      nonbinary: +`0x${COLORS.green}`,
     };
 
     return colors[gender] || 0x2c3e50;
@@ -318,9 +319,9 @@ export class IdCard extends Phaser.GameObjects.Container {
 
   private getGenderColor(gender: PlayerGender): number {
     const colors = {
-      male: 0x3498db, // Azul
-      female: 0xe74c3c, // Vermelho
-      nonbinary: 0x2ecc71, // Verde
+      male: +`0x${COLORS.blue}`,
+      female: +`0x${COLORS.red}`,
+      nonbinary: +`0x${COLORS.green}`,
     };
 
     return colors[gender] || 0x95a5a6;
@@ -393,14 +394,13 @@ export class IdCard extends Phaser.GameObjects.Container {
    * Efeito de validação do crachá
    */
   public playValidationEffect(): void {
-    // Scanner verde
     const scanner = this.scene.add.graphics();
     scanner.fillStyle(0x00ff00, 0.8);
     scanner.fillRect(
       -this.CARD_WIDTH / 2,
       -this.CARD_HEIGHT / 2,
       this.CARD_WIDTH,
-      4
+      4,
     );
 
     scanner.setDepth(5);
@@ -420,7 +420,6 @@ export class IdCard extends Phaser.GameObjects.Container {
   }
 
   private playApprovalEffect(): void {
-    // Brilho verde de aprovação
     const approvalGlow = this.scene.add.graphics();
     approvalGlow.fillStyle(0x00ff00, 0.3);
     approvalGlow.fillRoundedRect(
@@ -428,7 +427,7 @@ export class IdCard extends Phaser.GameObjects.Container {
       -this.CARD_HEIGHT / 2 - 5,
       this.CARD_WIDTH + 10,
       this.CARD_HEIGHT + 10,
-      20
+      20,
     );
 
     approvalGlow.setDepth(-1);
@@ -451,10 +450,10 @@ export class IdCard extends Phaser.GameObjects.Container {
       {
         fontSize: "24px",
         fontFamily: "VT323",
-        color: "#00FF00",
+        color: `#${COLORS.green}`,
         backgroundColor: "rgba(0, 0, 0, 0.8)",
         padding: { left: 15, right: 15, top: 8, bottom: 8 },
-      }
+      },
     );
     validatedText.setOrigin(0.5);
     validatedText.setAlpha(0);
@@ -482,9 +481,9 @@ export class IdCard extends Phaser.GameObjects.Container {
         -this.CARD_WIDTH / 2,
         -this.CARD_HEIGHT / 2,
         this.CARD_WIDTH,
-        this.CARD_HEIGHT
+        this.CARD_HEIGHT,
       ),
-      Phaser.Geom.Rectangle.Contains
+      Phaser.Geom.Rectangle.Contains,
     );
 
     this.on("pointerover", () => {

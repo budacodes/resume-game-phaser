@@ -1,6 +1,7 @@
 import { Scene } from "phaser";
 import { CursorManager } from "../../managers/CursorManager";
 import { CodeRainBackground } from "./intro/components/CodeRainBackground";
+import { COLORS } from "./ui/Utils";
 
 export class SplashScene extends Scene {
   private cursorManager!: CursorManager;
@@ -31,7 +32,7 @@ export class SplashScene extends Scene {
           fontSize: "48px",
           color: "#ffffff",
           align: "center",
-        }
+        },
       )
       .setOrigin(0.5);
 
@@ -44,9 +45,9 @@ export class SplashScene extends Scene {
         {
           fontFamily: '"VT323"',
           fontSize: "24px",
-          color: "#4cc9f0",
+          color: `#${COLORS.blue}`,
           align: "center",
-        }
+        },
       )
       .setOrigin(0.5);
 
@@ -76,7 +77,7 @@ export class SplashScene extends Scene {
       true,
       () => {
         this.startNewGame();
-      }
+      },
     );
 
     this.createButton(
@@ -90,7 +91,7 @@ export class SplashScene extends Scene {
         } else {
           return null;
         }
-      }
+      },
     );
   }
 
@@ -99,7 +100,7 @@ export class SplashScene extends Scene {
     y: number,
     label: string,
     enabled: boolean,
-    callback: () => void
+    callback: () => void,
   ) {
     const text = this.add
       .text(x, y, label, {
@@ -137,7 +138,7 @@ export class SplashScene extends Scene {
       this.cursorManager.setState("hover");
 
       if (enabled) {
-        text.setTint(0xf39c12); // Feedback visual ao passar o mouse
+        text.setTint(+`0x${COLORS.gold}`); // Feedback visual ao passar o mouse
       }
     });
 
@@ -160,7 +161,7 @@ export class SplashScene extends Scene {
       "current_career",
     ];
     keysToClear.forEach((key) =>
-      localStorage.removeItem(key)
+      localStorage.removeItem(key),
     );
 
     // Opcional: Se quiser resetar TUDO exceto volume:

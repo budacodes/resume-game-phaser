@@ -2,6 +2,7 @@ import { Scene } from "phaser";
 import { Player } from "../../entities/Player";
 import { MapManager } from "../../managers/MapManager";
 import { UIScene } from "./ui/UiScene";
+import { COLORS } from "./ui/Utils";
 
 export class InteriorScene extends Scene {
   // --- SISTEMAS ---
@@ -31,7 +32,7 @@ export class InteriorScene extends Scene {
   // --- ESTADOS ---
   private isReading: boolean = false;
 
-  private npcs!: Phaser.Physics.Arcade.Group; // Grupo para gerenciar todos NPCs
+  private npcs!: Phaser.Physics.Arcade.Group;
   private hasAppointment: boolean = false;
 
   constructor() {
@@ -46,28 +47,26 @@ export class InteriorScene extends Scene {
     spawnName: string;
     facingDirection?: "up" | "down" | "right" | "left";
   }) {
-    this.mapKey = data.mapKey || "office"; // Fallback se esquecer de passar
+    this.mapKey = data.mapKey || "office";
     this.spawnName = data.spawnName || "spawn_entrance";
-    this.initialFacing = data.facingDirection || "up"; // Padrão: Entrando na sala (olhando pra cima)
+    this.initialFacing = data.facingDirection || "up";
   }
 
   create() {
-    // 1. FUNDO PRETO (Importante para interiores pequenos)
+    // 1. FUNDO PRETO
     this.cameras.main.setBackgroundColor("#111111");
 
     this.game.events.emit("scene-changed", "InteriorScene");
-
-    // Ou ativa o joystick diretamente
     this.game.events.emit("enable-joystick");
 
-    // 2. RECUPERA A UI (Sem reiniciar a cena, pois ela é persistente)
+    // 2. RECUPERA A UI
     if (this.scene.isActive("UIScene")) {
       this.uiScene = this.scene.get("UIScene") as UIScene;
-      this.scene.bringToTop("UIScene"); // <--- OBRIGATÓRIO: Traz o Joystick pra frente
+      this.scene.bringToTop("UIScene");
     } else {
       this.scene.launch("UIScene");
       this.uiScene = this.scene.get("UIScene") as UIScene;
-      this.scene.bringToTop("UIScene"); // <--- OBRIGATÓRIO
+      this.scene.bringToTop("UIScene");
     }
 
     // Garante que o estado de leitura/travamento comece limpo
@@ -75,17 +74,16 @@ export class InteriorScene extends Scene {
 
     // 3. INICIALIZA MAPA
     this.mapManager = new MapManager(this);
-    this.mapManager.init(this.mapKey); // Carrega o JSON específico passado no init
+    this.mapManager.init(this.mapKey);
 
     // 4. INICIALIZA PLAYER
-    // Busca o ponto de spawn dentro do JSON da sala
     const spawn = this.mapManager.getSpawnPoint(
-      this.spawnName
+      this.spawnName,
     ) || { x: 100, y: 100 };
 
     this.player = new Player(this, spawn.x, spawn.y);
     this.player.setUIScene(this.uiScene);
-    this.player.setFacing(this.initialFacing); // Vira o boneco para a direção certa
+    this.player.setFacing(this.initialFacing);
 
     this.createNPCs();
 
@@ -93,72 +91,81 @@ export class InteriorScene extends Scene {
       this.physics.add.collider(this.player, this.npcs);
     }
 
-    // Colisões (Paredes vs Player)
+    // Colisões
     if (this.mapManager.colliders.length > 0) {
       this.physics.add.collider(
         this.player,
-        this.mapManager.colliders
+        this.mapManager.colliders,
       );
     }
 
-    // =========================================================
-    // 5. CÂMERA (CORRIGIDO PARA CENTRALIZAR COM ZOOM 2X)
-    // =========================================================
+    // 5. CÂMERA
     const map = this.mapManager.map;
     const mapWidth = map.widthInPixels;
     const mapHeight = map.heightInPixels;
 
-    // Configura o ZOOM fixo que você pediu
     const zoom = 2;
     this.cameras.main.setZoom(zoom);
 
-    // Verifica se o mapa (com zoom) é menor que a tela
     const mapDisplayWidth = mapWidth * zoom;
     const mapDisplayHeight = mapHeight * zoom;
     const screenWidth = this.scale.width;
     const screenHeight = this.scale.height;
 
-    // Lógica Híbrida:
     if (
       mapDisplayWidth < screenWidth &&
       mapDisplayHeight < screenHeight
     ) {
-      // CASO 1: O mapa cabe inteiro na tela
-      // Removemos os limites (Bounds) para permitir que a câmera mostre o "preto" em volta
-      // Se deixarmos setBounds aqui, ele vai travar no canto (0,0)
       this.cameras.main.removeBounds();
-
-      // Centraliza a câmera no meio exato do mapa
       this.cameras.main.centerOn(
         mapWidth / 2,
-        mapHeight / 2
+        mapHeight / 2,
       );
     } else {
-      // CASO 2: O mapa é maior que a tela (scrolling)
-      // Travamos a câmera para não mostrar o fundo preto
       this.cameras.main.setBounds(
         0,
         0,
         mapWidth,
-        mapHeight
+        mapHeight,
       );
-
-      // Segue o player
       this.cameras.main.startFollow(
         this.player,
         true,
         0.09,
-        0.09
+        0.09,
       );
     }
 
-    // Fade In suave ao entrar na sala
     this.cameras.main.fadeIn(500, 0, 0, 0);
-    // =========================================================
 
     this.initAudioAndInputs();
-
     this.createInteractionZones();
+    this.setupDialogListeners();
+  }
+
+  /**
+   * NOVO: Configura listeners para eventos de diálogo da UIScene
+   */
+  private setupDialogListeners(): void {
+    // Quando o diálogo for fechado
+    this.game.events.on("dialog-finished", () => {
+      this.onDialogClosed();
+    });
+  }
+
+  /**
+   * NOVO: Callback quando o diálogo é fechado
+   */
+  private onDialogClosed(): void {
+    this.isReading = false;
+
+    // Ativa o cooldown
+    this.isInteractionCooldown = true;
+
+    // Libera após 500ms
+    this.time.delayedCall(500, () => {
+      this.isInteractionCooldown = false;
+    });
   }
 
   private initAudioAndInputs() {
@@ -174,84 +181,68 @@ export class InteriorScene extends Scene {
 
     if (this.input.keyboard) {
       this.keyE = this.input.keyboard.addKey(
-        Phaser.Input.Keyboard.KeyCodes.E
+        Phaser.Input.Keyboard.KeyCodes.E,
       );
       this.keyY = this.input.keyboard.addKey(
-        Phaser.Input.Keyboard.KeyCodes.Y
+        Phaser.Input.Keyboard.KeyCodes.Y,
       );
       this.keyN = this.input.keyboard.addKey(
-        Phaser.Input.Keyboard.KeyCodes.N
+        Phaser.Input.Keyboard.KeyCodes.N,
       );
     }
 
-    // Prompt visual 'E'
     this.interactionPrompt = this.add
-      .sprite(0, 0, "btn-e")
+      .sprite(0, -16, "btn-e")
       .setDepth(100)
       .setVisible(false);
   }
 
   private createNPCs() {
-    // 1. Cria um grupo físico estático (Immovable = Player bate e não empurra)
     this.npcs = this.physics.add.group({
-      immovable: true, // Não é empurrado
-      allowGravity: false, // Não cai (se tivesse gravidade)
+      immovable: true,
+      allowGravity: false,
     });
 
-    // 2. Busca a camada de NPCs (se você criou uma separada) ou Spawns
-    // Se você colocou no layer 'Spawns' ou 'Interactions', mude o nome abaixo:
     const npcLayer =
       this.mapManager.map.getObjectLayer("NPCs");
 
     if (!npcLayer) {
       console.warn(
-        "Camada 'NPCs' não encontrada no Tiled."
+        "Camada 'NPCs' não encontrada no Tiled.",
       );
       return;
     }
 
-    // 3. Procura especificamente pela Ada
     const adaObj = npcLayer.objects.find(
-      (obj) => obj.name === "NPC_Ada"
+      (obj) => obj.name === "NPC_Ada",
     );
 
     if (adaObj) {
       const x = adaObj.x || 0;
       const y = adaObj.y || 0;
 
-      // 1. Criação do Sprite
-      // NOTA: Certifique-se que no preloader você carregou com frameWidth: 16, frameHeight: 32 (ou a altura correta da sua sprite)
       const ada = this.npcs.create(x, y, "npc-ada-idle");
 
-      // 2. Configurações Visuais
-      ada.setOrigin(0.5, 1); // 0.5 no X centraliza melhor o sprite no tile; 1 no Y põe a âncora no pé
+      ada.setOrigin(0.5, 1);
       ada.setDepth(10);
 
-      // 3. CORREÇÃO DA ANIMAÇÃO (Ficar de Frente)
-      // Se a animação ainda não existe, cria ela agora
       if (!this.anims.exists("ada-idle-down")) {
         this.anims.create({
           key: "ada-idle-down",
           frames: this.anims.generateFrameNumbers(
             "npc-ada-idle",
-            { start: 18, end: 23 }
-          ), // Frames de baixo
+            { start: 18, end: 23 },
+          ),
           frameRate: 8,
           repeat: -1,
         });
       }
 
-      // Dá o play para ela ficar olhando para baixo e "respirando"
       ada.play("ada-idle-down");
 
-      // 4. CORREÇÃO DA HITBOX (Interação nos Pés)
       if (ada.body) {
         const width = 16;
-        const height = 10; // Altura da caixa de colisão (só o pé)
-
-        // Assume que o sprite tem 32px de altura.
-        // O Offset Y deve ser: AlturaTotal - AlturaCaixa
-        // Ex: 32 - 10 = 22.
+        const height = 10;
         const offsetY = ada.height - height;
 
         ada.body.setSize(width, height);
@@ -261,10 +252,9 @@ export class InteriorScene extends Scene {
   }
 
   update() {
-    // Se estiver lendo/saindo, congela
     if (this.isReading) {
       this.player.stopMovement();
-      this.handleDialogInput();
+      // REMOVIDO: handleDialogInput() - Agora a UIScene gerencia isso
     } else {
       this.player.update();
       this.handleInteractions();
@@ -272,7 +262,7 @@ export class InteriorScene extends Scene {
   }
 
   // =================================================================
-  // LÓGICA DE INTERAÇÃO (Copiada e adaptada da MainScene)
+  // LÓGICA DE INTERAÇÃO
   // =================================================================
 
   private createInteractionZones() {
@@ -306,34 +296,30 @@ export class InteriorScene extends Scene {
         this.currentInteractiveObject =
           zone as Phaser.GameObjects.Zone;
         isOverlapping = true;
-      }
+      },
     );
 
     if (isOverlapping && this.currentInteractiveObject) {
-      // Entrou na zona: Mostra botão e anima
       if (!this.interactionPrompt.visible) {
         this.interactionPrompt.setVisible(true);
         this.startPromptLoop();
       }
 
-      // Posiciona o botão em cima do player com o "pulo"
       const animOffset =
         this.interactionPrompt.getData("offsetY") || 0;
       this.interactionPrompt.setPosition(
         this.player.x,
-        this.player.y - 15 + animOffset // <--- APLICA O PULO
+        this.player.y - 24 + animOffset,
       );
 
-      // Ação
       if (
         Phaser.Input.Keyboard.JustDown(this.keyE) &&
         !this.isReading &&
-        !this.isInteractionCooldown // <--- ADICIONE ESTA LINHA AQUI
+        !this.isInteractionCooldown
       ) {
         this.triggerAction(this.currentInteractiveObject);
       }
     } else {
-      // Saiu da zona
       if (this.interactionPrompt.visible) {
         this.interactionPrompt.setVisible(false);
         this.stopPromptLoop();
@@ -352,43 +338,57 @@ export class InteriorScene extends Scene {
       case "npc_ada":
         this.handleAdaInteraction();
         break;
+      case "npc_buda":
+        this.handleBudaInteraction();
+        break;
       case "warp":
         this.handleWarpAction(data);
         break;
-      // Adicione mais casos conforme necessário
       default:
         console.warn(
-          `Ação desconhecida para o tipo: ${type}`
+          `Ação desconhecida para o tipo: ${type}`,
         );
     }
   }
 
   private handleAdaInteraction() {
-    this.isReading = true; // 1. Avisa o update que estamos lendo
+    this.isReading = true;
     this.player.stopMovement();
 
     const playerName =
-      this.registry.get("playerName") || "Bob";
+      localStorage.getItem("player_name") || "Bob";
 
     if (this.hasAppointment) {
-      // Se já falou antes
-      this.game.events.emit(
-        "show-dialog",
-        `Ada: O elevador é logo ali à direita, ${playerName}. O chefe está te esperando no 2º andar.`,
-        100,
-        250
-      );
+      // Envia evento para UIScene mostrar o diálogo
+      this.game.events.emit("dialog-started", {
+        text: `[weight=900][color=#${COLORS.gold}]Ada[/color][/weight]: O elevador é logo ali à direita, [weight=900]${playerName}[/weight]. O chefe está te esperando no 2º andar.`,
+        hint: "[ ESPAÇO para fechar ]",
+        mode: "read",
+      });
     } else {
-      // Primeira vez falando
-      this.hasAppointment = true; // <--- LIBERA O ACESSO AQUI
+      this.hasAppointment = true;
 
-      this.game.events.emit(
-        "show-dialog",
-        `Ada: Ah, você deve ser o ${playerName}! Eu vi seu nome na lista.\n\nPode subir, acabei de liberar seu crachá para o 2º andar.`,
-        120,
-        300
-      );
+      // Envia evento para UIScene mostrar o diálogo
+      this.game.events.emit("dialog-started", {
+        text: `[weight=900][color=#${COLORS.gold}]Ada[/color][/weight]: Ah, você deve ser o [weight=900]${playerName}[/weight]! Vou anunciar sua chegada.\nPode subir, acabei de liberar seu crachá para o 2º andar.`,
+        hint: "[ ESPAÇO para fechar ]",
+        mode: "read",
+      });
     }
+  }
+
+  private handleBudaInteraction() {
+    this.isReading = true;
+    this.player.stopMovement();
+
+    const playerName =
+      localStorage.getItem("player_name") || "Bob";
+
+    this.game.events.emit("dialog-started", {
+      text: `[weight=900][color=#${COLORS.gold}]Buda[/color][/weight]: Grande [weight=900]${playerName}[/weight]! Como vai?\nObrigado por visitar meu mundo. Fique à vontade para olhar meus projetos nos terminais.`,
+      hint: "[ ESPAÇO para fechar ]",
+      mode: "read",
+    });
   }
 
   private handleWarpAction(data: any) {
@@ -396,19 +396,19 @@ export class InteriorScene extends Scene {
       mapKey: this.getTiledProperty(data, "mapKey"),
       facingDirection: this.getTiledProperty(
         data,
-        "facingDirection"
+        "facingDirection",
       ),
       targetScene: this.getTiledProperty(
         data,
-        "targetScene"
+        "targetScene",
       ),
       targetSpawn: this.getTiledProperty(
         data,
-        "targetSpawn"
+        "targetSpawn",
       ),
       requiresAccess: this.getTiledProperty(
         data,
-        "requiresAccess"
+        "requiresAccess",
       ),
     };
 
@@ -419,25 +419,21 @@ export class InteriorScene extends Scene {
       this.isReading = true;
       this.player.stopMovement();
 
-      this.game.events.emit(
-        "show-dialog",
-        "Segurança (Interfone): ACESSO NEGADO.\nPor favor, identifique-se na recepção com a Ada antes de subir.",
-        100,
-        300
-      );
+      // Envia evento para UIScene mostrar o diálogo
+      this.game.events.emit("dialog-started", {
+        text: `[weight=900][color=#${COLORS.gold}]Segurança (Interfone)[/color][/weight]: ACESSO NEGADO.\nPor favor, identifique-se na recepção antes de subir.`,
+        hint: "[ ESPAÇO para fechar ]",
+        mode: "read",
+      });
 
-      // Toca um som de erro (opcional)
       this.errorSound.play();
-      return; // <--- IMPEDE O CÓDIGO DE CONTINUAR (NÃO TROCA DE CENA)
+      return;
     }
 
     if (sceneProperties.targetScene) {
-      // 1. Toca um som de porta (opcional)
       this.doorOpenSound.play();
-      // 2. Efeito visual (Fade Out)
       this.cameras.main.fadeOut(1000, 0, 0, 0);
 
-      // 3. Espera o Fade terminar para trocar de cena
       this.cameras.main.once(
         Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE,
         () => {
@@ -447,7 +443,7 @@ export class InteriorScene extends Scene {
             facingDirection:
               sceneProperties.facingDirection,
           });
-        }
+        },
       );
     }
   }
@@ -455,39 +451,21 @@ export class InteriorScene extends Scene {
   private handleDialogInteraction(data: any) {
     const msg =
       this.getTiledProperty(data, "message") || "...";
-    const height =
-      this.getTiledProperty(data, "height") || 100;
-    const width =
-      this.getTiledProperty(data, "width") || 200;
 
     this.isReading = true;
-    this.game.events.emit(
-      "show-dialog",
-      msg,
-      +height,
-      +width
-    );
+
+    // Envia evento para UIScene mostrar o diálogo
+    this.game.events.emit("dialog-started", {
+      text: msg,
+      hint: "[ ESPAÇO para fechar ]",
+      mode: "read",
+    });
   }
 
-  private handleDialogInput() {
-    // Fecha diálogo com E
-    if (Phaser.Input.Keyboard.JustDown(this.keyE)) {
-      // 1. Fecha o diálogo visualmente
-      this.game.events.emit("hide-dialog");
-      this.isReading = false;
-
-      // 2. ATIVA O COOLDOWN (A Mágica acontece aqui)
-      this.isInteractionCooldown = true;
-
-      // 3. Cria um timer para liberar a interação de novo após 500ms
-      this.time.delayedCall(500, () => {
-        this.isInteractionCooldown = false;
-      });
-    }
-  }
+  // REMOVIDO: handleDialogInput() - Não é mais necessário
 
   // =================================================================
-  // HELPERS VISUAIS (Animação do Botão)
+  // HELPERS VISUAIS
   // =================================================================
 
   private startPromptLoop() {
@@ -503,7 +481,7 @@ export class InteriorScene extends Scene {
       ease: "Quad.easeInOut",
       onUpdate: (
         tween,
-        target: Phaser.GameObjects.Sprite
+        target: Phaser.GameObjects.Sprite,
       ) => {
         const currentScale = target.scaleY;
         const calculatedOffset = (1 - currentScale) * 10;
@@ -520,16 +498,24 @@ export class InteriorScene extends Scene {
 
   private getTiledProperty(
     obj: any,
-    propName: string
+    propName: string,
   ): any {
     if (!obj || !obj.properties) return null;
     if (Array.isArray(obj.properties)) {
       const prop = obj.properties.find(
-        (p: any) => p.name === propName
+        (p: any) => p.name === propName,
       );
       return prop ? prop.value : null;
     } else {
       return obj.properties[propName];
     }
+  }
+
+  /**
+   * Cleanup quando a cena for destruída
+   */
+  shutdown() {
+    // Remove listeners para evitar memory leaks
+    this.game.events.off("dialog-finished");
   }
 }

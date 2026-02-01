@@ -1,10 +1,12 @@
 import Phaser from "phaser";
-import { SettingsManager } from "../../../../managers/SettingsManager";
 import { CursorManager } from "../../../../managers/CursorManager";
+import { SettingsManager } from "../../../../managers/SettingsManager";
+import { COLORS } from "../Utils";
 
 export class SettingsMenu {
   private scene: Phaser.Scene;
   private container: Phaser.GameObjects.Container;
+  private opened = false;
 
   public isVisible = false;
 
@@ -31,7 +33,7 @@ export class SettingsMenu {
 
     // 1. Garante a inicialização do Manager passando o game
     const manager = SettingsManager.getInstance(
-      this.scene.game
+      this.scene.game,
     );
 
     // 2. Carrega as configurações reais IMEDIATAMENTE
@@ -52,23 +54,43 @@ export class SettingsMenu {
   // PUBLIC API (contrato usado pelas outras cenas)
   // ======================================================
 
+  public open(): void {
+    if (this.isVisible) return;
+
+    this.isVisible = true;
+
+    // 1. Atualiza dados antes de mostrar
+    this.updateLocalSettingsFromManager();
+
+    // 2. Reconstrói UI com valores atualizados
+    this.container.removeAll(true);
+    this.create();
+
+    // 3. Cursor sempre correto
+    const cursor = CursorManager.getInstance();
+    cursor.setScene(this.scene);
+    cursor.showCursor();
+
+    // 4. Mostra container
+    this.container.setVisible(true);
+  }
+
+  public close(): void {
+    if (!this.isVisible) return;
+
+    this.isVisible = false;
+
+    // Opcional: limpar foco / estados internos aqui
+
+    this.container.setVisible(false);
+  }
+
+  public isOpen(): boolean {
+    return this.opened;
+  }
+
   public toggle(): void {
-    this.isVisible = !this.isVisible;
-
-    if (this.isVisible) {
-      // 1. Antes de mostrar, atualiza os dados
-      this.updateLocalSettingsFromManager();
-
-      // 2. Limpa o que tinha antes e desenha com os valores novos
-      this.container.removeAll(true);
-      this.create();
-
-      // 3. Garante o cursor na cena certa
-      CursorManager.getInstance().setScene(this.scene);
-      CursorManager.getInstance().showCursor();
-    }
-
-    this.container.setVisible(this.isVisible);
+    this.isVisible ? this.close() : this.open();
   }
 
   public destroy(): void {
@@ -103,7 +125,7 @@ export class SettingsMenu {
       width / scaleToApply,
       height / scaleToApply,
       0x000000,
-      0.7
+      0.7,
     );
     overlay.setOrigin(0.5);
     overlay.setInteractive();
@@ -122,7 +144,7 @@ export class SettingsMenu {
       this.panelWidth,
       520,
       0x0b0b0b,
-      0.95
+      0.95,
     );
     background.setStrokeStyle(2, 0xffffff, 1);
     background.setOrigin(0.5);
@@ -135,7 +157,7 @@ export class SettingsMenu {
       .text(0, -220, "CONFIGURAÇÕES", {
         fontFamily: "'VT323'",
         fontSize: "32px",
-        color: "#f39c12",
+        color: `#${COLORS.gold}`,
       })
       .setOrigin(0.5);
 
@@ -150,7 +172,7 @@ export class SettingsMenu {
 
     closeButton.on("pointerover", () => {
       this.cursorManager.setState("hover");
-      closeButton.setTintFill(0xe74c3c);
+      closeButton.setTintFill(+`0x${COLORS.red}`);
     });
 
     closeButton.on("pointerout", () => {
@@ -170,7 +192,7 @@ export class SettingsMenu {
     this.addLabel(
       "Idioma:",
       -this.panelWidth / 2 + this.panelPadding,
-      cursorY
+      cursorY,
     );
 
     const langButtonX = -42;
@@ -213,21 +235,21 @@ export class SettingsMenu {
     this.addSliderRow(
       "Volume Geral:",
       cursorY,
-      "masterVolume"
+      "masterVolume",
     );
     cursorY += this.rowHeight;
 
     this.addSliderRow(
       "Volume da Música:",
       cursorY,
-      "musicVolume"
+      "musicVolume",
     );
     cursorY += this.rowHeight;
 
     this.addSliderRow(
       "Volume dos Efeitos:",
       cursorY,
-      "sfxVolume"
+      "sfxVolume",
     );
     cursorY += this.rowHeight;
 
@@ -241,7 +263,7 @@ export class SettingsMenu {
     this.addLabel(
       "Tela Cheia:",
       -this.panelWidth / 2 + this.panelPadding,
-      cursorY
+      cursorY,
     );
 
     const toggleX = -68;
@@ -259,7 +281,7 @@ export class SettingsMenu {
       //   this.settings.fullscreen ? 0x4dff4d : 0xff4d4d
       // );
       fullscreenToggle.setTexture(
-        this.settings.fullscreen ? "minimize" : "expand"
+        this.settings.fullscreen ? "minimize" : "expand",
       );
 
       if (this.settings.fullscreen) {
@@ -271,7 +293,7 @@ export class SettingsMenu {
 
     fullscreenToggle.on("pointerover", () => {
       this.cursorManager.setState("hover");
-      fullscreenToggle.setTintFill(0xf39c12);
+      fullscreenToggle.setTintFill(+`0x${COLORS.gold}`);
     });
 
     fullscreenToggle.on("pointerout", () => {
@@ -285,7 +307,7 @@ export class SettingsMenu {
 
     // ===== BOTÃO APLICAR
     const applyButton = this.scene.add
-      .rectangle(0, cursorY, 160, 40, 0xf39c12)
+      .rectangle(0, cursorY, 160, 40, +`0x${COLORS.gold}`)
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: false });
 
@@ -302,7 +324,7 @@ export class SettingsMenu {
       applyButton.setFillStyle(0xd37e00);
     });
     applyButton.on("pointerout", () => {
-      applyButton.setFillStyle(0xf39c12);
+      applyButton.setFillStyle(+`#${COLORS.gold}`);
     });
     applyButton.on("pointerdown", () => {
       applyButton.setFillStyle(0xe38a02);
@@ -310,15 +332,6 @@ export class SettingsMenu {
     });
     applyButton.on("pointerup", () => {
       applyButton.setFillStyle(0xd37e00);
-      // f39c12 = 5214173
-      // 6fadef = 7319023
-      // 3fazul = 4160973
-
-      // laranja = 15965202
-      // D37E00
-
-      // = -2104850
-      // = -1053200
     });
 
     this.container.add([applyButton, applyText]);
@@ -331,13 +344,13 @@ export class SettingsMenu {
   private addLabel(
     text: string,
     x: number,
-    y: number
+    y: number,
   ): void {
     const baseSize = 16;
     // O fontSize no seu settings é um multiplicador (0.5, 1.0, 1.5)
     const fontSizeMultiplier = this.settings.fontSize;
     const finalSize = Math.round(
-      baseSize * (fontSizeMultiplier * 2)
+      baseSize * (fontSizeMultiplier * 2),
     ); // Ajuste o cálculo conforme desejar
 
     const label = this.scene.add
@@ -354,7 +367,7 @@ export class SettingsMenu {
   private addSliderRow(
     label: string,
     y: number,
-    settingKey: keyof typeof this.settings
+    settingKey: keyof typeof this.settings,
   ): void {
     const labelX = -this.panelWidth / 2 + this.panelPadding;
     const sliderX = 40;
@@ -371,7 +384,7 @@ export class SettingsMenu {
       percentage = Phaser.Math.Clamp(
         (currentVal - 0.5) / (1.5 - 0.5),
         0,
-        1
+        1,
       );
       initialText = Math.round(currentVal * 100) + "%";
     } else {
@@ -393,7 +406,13 @@ export class SettingsMenu {
     const fillWidth = this.sliderWidth * percentage;
     const fillX = trackStartX + fillWidth / 2;
     const fill = this.scene.add
-      .rectangle(fillX, y, fillWidth, 6, 0xf39c12)
+      .rectangle(
+        fillX,
+        y,
+        fillWidth,
+        6,
+        +`0x${COLORS.gold}`,
+      )
       .setOrigin(0.5);
 
     // Knob
@@ -423,7 +442,7 @@ export class SettingsMenu {
 
     // Interatividade do slider
     const updateSlider = (
-      pointer: Phaser.Input.Pointer
+      pointer: Phaser.Input.Pointer,
     ) => {
       const localX = pointer.x - this.container.x;
       // IMPORTANTE: Ajuste de escala do container para o mouse não desviar
@@ -433,7 +452,7 @@ export class SettingsMenu {
       const newPercentage = Phaser.Math.Clamp(
         scaledRelativeX / this.sliderWidth,
         0,
-        1
+        1,
       );
 
       // Lógica de gravação diferenciada
@@ -445,7 +464,7 @@ export class SettingsMenu {
         (this.settings[settingKey] as number) =
           newPercentage;
         value.setText(
-          Math.round(newPercentage * 100) + "%"
+          Math.round(newPercentage * 100) + "%",
         );
       }
 
@@ -470,7 +489,7 @@ export class SettingsMenu {
       "pointerdown",
       (pointer: Phaser.Input.Pointer) => {
         updateSlider(pointer);
-      }
+      },
     );
 
     this.container.add([track, fill, knob, value]);
@@ -493,7 +512,13 @@ export class SettingsMenu {
     const fillWidth = this.sliderWidth * percentage;
     const fillX = trackStartX + fillWidth / 2;
     const fill = this.scene.add
-      .rectangle(fillX, y, fillWidth, 6, 0xf39c12)
+      .rectangle(
+        fillX,
+        y,
+        fillWidth,
+        6,
+        +`0x${COLORS.gold}`,
+      )
       .setOrigin(0.5);
 
     const knobX =
@@ -520,19 +545,19 @@ export class SettingsMenu {
           fontFamily: "'VT323'",
           fontSize: "16px",
           color: "#ffffff",
-        }
+        },
       )
       .setOrigin(1, 0.5);
 
     const updateSlider = (
-      pointer: Phaser.Input.Pointer
+      pointer: Phaser.Input.Pointer,
     ) => {
       const localX = pointer.x - this.container.x;
       const relativeX = localX - trackStartX;
       const newPercentage = Phaser.Math.Clamp(
         relativeX / this.sliderWidth,
         0,
-        1
+        1,
       );
 
       this.settings.fontSize = newPercentage;
@@ -563,7 +588,7 @@ export class SettingsMenu {
       "pointerdown",
       (pointer: Phaser.Input.Pointer) => {
         updateSlider(pointer);
-      }
+      },
     );
 
     this.container.add([track, fill, knob, value]);
@@ -571,12 +596,12 @@ export class SettingsMenu {
 
   private updateLocalSettingsFromManager(): void {
     const manager = SettingsManager.getInstance(
-      this.scene.game
+      this.scene.game,
     );
 
     if (!manager) {
       console.error(
-        "SettingsManager ainda não foi inicializado!"
+        "SettingsManager ainda não foi inicializado!",
       );
       return;
     }
@@ -616,7 +641,7 @@ export class SettingsMenu {
     });
 
     this.scene.game.events.emit(
-      SettingsManager.EVENTS.VOLUME_CHANGED
+      SettingsManager.EVENTS.VOLUME_CHANGED,
     );
 
     this.scene.time.delayedCall(500, () => {

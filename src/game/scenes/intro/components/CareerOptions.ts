@@ -1,5 +1,6 @@
 import { Scene } from "phaser";
 import { CursorManager } from "../../../../managers/CursorManager";
+import { COLORS } from "../../ui/Utils";
 
 export type CareerOption = {
   id: string;
@@ -22,11 +23,11 @@ export class CareerOptions {
 
   // Cores no estilo retro
   private readonly COLORS = {
-    highlight: 0x00ff00, // Verde neón
+    highlight: +`0x${COLORS.green}`,
     text: 0xffffff,
     bg: 0x000000,
     border: 0x444444,
-    title: 0x00ff00, // Verde para o título
+    title: +`0x${COLORS.green}`,
   };
 
   private readonly SIZE = {
@@ -37,7 +38,7 @@ export class CareerOptions {
   constructor(
     scene: Scene,
     onSelect: (careerId: string) => void,
-    onHover?: (careerId: string) => void
+    onHover?: (careerId: string) => void,
   ) {
     this.scene = scene;
     this.onSelect = onSelect;
@@ -55,42 +56,42 @@ export class CareerOptions {
         title: "RECRUTADOR",
         description: "Encontra talentos e constrói equipes",
         frame: 0,
-        color: 0x3498db, // Azul
+        color: +`0x${COLORS.blue}`,
       },
       {
         id: "manager",
         title: "GERENTE",
         description: "Lidera projetos e times",
         frame: 1,
-        color: 0xe74c3c, // Vermelho
+        color: +`0x${COLORS.red}`,
       },
       {
         id: "developer",
         title: "DESENVOLVEDOR",
         description: "Cria sistemas e soluções",
         frame: 2,
-        color: 0x2ecc71, // Verde
+        color: +`0x${COLORS.green}`,
       },
       {
         id: "designer",
         title: "DESIGNER",
         description: "Cria experiências visuais",
         frame: 3,
-        color: 0x9b59b6, // Roxo
+        color: +`0x${COLORS.purple}`, // Roxo //MUDAR
       },
       {
         id: "analyst",
         title: "ANALISTA",
         description: "Analisa dados e processos",
         frame: 4,
-        color: 0xf39c12, // Laranja
+        color: +`0x${COLORS.gold}`,
       },
       {
         id: "entrepreneur",
         title: "EMPREENDEDOR",
         description: "Cria seu próprio caminho",
         frame: 5,
-        color: 0x1abc9c, // Turquesa
+        color: +`0x${COLORS.torquoise}`,
       },
     ];
   }
@@ -115,7 +116,7 @@ export class CareerOptions {
       const careerOption = this.createCareerOption(
         career,
         x,
-        y
+        y,
       );
       this.optionsContainer.add(careerOption);
     });
@@ -153,7 +154,7 @@ export class CareerOptions {
   private createCareerOption(
     career: CareerOption,
     x: number,
-    y: number
+    y: number,
   ): Phaser.GameObjects.Container {
     const container = this.scene.add
       .container(x, y)
@@ -167,7 +168,7 @@ export class CareerOptions {
       -this.SIZE.height / 2,
       this.SIZE.width,
       this.SIZE.height,
-      10
+      10,
     );
 
     // Borda
@@ -177,7 +178,7 @@ export class CareerOptions {
       -this.SIZE.height / 2,
       this.SIZE.width,
       this.SIZE.height,
-      10
+      10,
     );
 
     // Ícone
@@ -185,7 +186,7 @@ export class CareerOptions {
       0,
       -50,
       "career_icons",
-      career.frame
+      career.frame,
     );
     icon.setScale(0.25).setOrigin(0.5);
 
@@ -199,7 +200,7 @@ export class CareerOptions {
         fontFamily: "VT323",
         color: this.colorToString(career.color),
         fontStyle: "bold",
-      }
+      },
     );
 
     // Descrição
@@ -213,7 +214,7 @@ export class CareerOptions {
         color: this.colorToString(this.COLORS.text),
         wordWrap: { width: 125 }, // Aumentei levemente a largura da quebra
         lineSpacing: -2, // Aperta um pouco as linhas se necessário
-      }
+      },
     );
 
     container.add([bg, icon, title, desc]);
@@ -223,21 +224,21 @@ export class CareerOptions {
       -this.SIZE.width / 2,
       -this.SIZE.height / 2,
       this.SIZE.width,
-      this.SIZE.height
+      this.SIZE.height,
     );
     container.setInteractive(
       hitArea,
-      Phaser.Geom.Rectangle.Contains
+      Phaser.Geom.Rectangle.Contains,
     );
 
     // Eventos de hover
     container.on("pointerover", () => {
       const index = this.careers.findIndex(
-        (c) => c.id === career.id
+        (c) => c.id === career.id,
       );
       if (index !== -1) {
         this.removeHighlightFromIndex(
-          this.currentHighlightedIndex
+          this.currentHighlightedIndex,
         );
         this.currentHighlightedIndex = index;
         this.highlightOptionByIndex(index);
@@ -252,13 +253,13 @@ export class CareerOptions {
       if (this.selectedCareer !== career.id) {
         // Apenas remove o destaque se não for o item atualmente destacado por teclado
         const index = this.careers.findIndex(
-          (c) => c.id === career.id
+          (c) => c.id === career.id,
         );
         if (index !== this.currentHighlightedIndex) {
           this.highlightOption(
             container,
             career.color,
-            false
+            false,
           );
         }
       }
@@ -274,7 +275,7 @@ export class CareerOptions {
   private highlightOption(
     container: Phaser.GameObjects.Container,
     color: number,
-    highlight: boolean
+    highlight: boolean,
   ): void {
     // Encontra o fundo (primeiro elemento)
     const bg = container.list[0];
@@ -282,7 +283,7 @@ export class CareerOptions {
     // Verifica se é um objeto Graphics
     if (!(bg instanceof Phaser.GameObjects.Graphics)) {
       console.warn(
-        "Primeiro elemento do container não é Graphics"
+        "Primeiro elemento do container não é Graphics",
       );
       return;
     }
@@ -298,7 +299,7 @@ export class CareerOptions {
         -this.SIZE.height / 2,
         this.SIZE.width,
         this.SIZE.height,
-        10
+        10,
       );
 
       // Borda neon
@@ -308,7 +309,7 @@ export class CareerOptions {
         -this.SIZE.height / 2,
         this.SIZE.width,
         this.SIZE.height,
-        10
+        10,
       );
 
       // Brilho interno
@@ -318,7 +319,7 @@ export class CareerOptions {
         -this.SIZE.height / 2 + 2,
         this.SIZE.width - 4,
         this.SIZE.height - 4,
-        8
+        8,
       );
     } else {
       // Normal
@@ -328,7 +329,7 @@ export class CareerOptions {
         -this.SIZE.height / 2,
         this.SIZE.width,
         this.SIZE.height,
-        10
+        10,
       );
 
       bg.lineStyle(2, this.COLORS.border, 1);
@@ -337,7 +338,7 @@ export class CareerOptions {
         -this.SIZE.height / 2,
         this.SIZE.width,
         this.SIZE.height,
-        10
+        10,
       );
     }
   }
@@ -376,7 +377,7 @@ export class CareerOptions {
         this.highlightOption(
           container,
           career.color,
-          false
+          false,
         );
       }
     }
@@ -415,7 +416,7 @@ export class CareerOptions {
           this.highlightOption(
             container,
             career.color,
-            isSelected
+            isSelected,
           );
         }
       }
@@ -433,7 +434,7 @@ export class CareerOptions {
 
   private playConfirmationEffect(): void {
     const selectedCareer = this.careers.find(
-      (c) => c.id === this.selectedCareer
+      (c) => c.id === this.selectedCareer,
     );
     if (!selectedCareer) return;
 
@@ -514,14 +515,14 @@ export class CareerOptions {
     // Configura listeners
     if (keyboard) {
       keyboard.on("keydown-LEFT", () =>
-        moveSelection(-1, 0)
+        moveSelection(-1, 0),
       );
       keyboard.on("keydown-RIGHT", () =>
-        moveSelection(1, 0)
+        moveSelection(1, 0),
       );
       keyboard.on("keydown-UP", () => moveSelection(0, -1));
       keyboard.on("keydown-DOWN", () =>
-        moveSelection(0, 1)
+        moveSelection(0, 1),
       );
       keyboard.on(
         "keydown-ENTER",
@@ -529,7 +530,7 @@ export class CareerOptions {
           event.preventDefault();
           event.stopPropagation();
           confirmSelection();
-        }
+        },
       );
       keyboard.on(
         "keydown-SPACE",
@@ -537,7 +538,7 @@ export class CareerOptions {
           event.preventDefault();
           event.stopPropagation();
           confirmSelection();
-        }
+        },
       );
     }
   }
