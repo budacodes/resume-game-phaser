@@ -14,21 +14,33 @@ export class CollectItemUseCase {
     private readonly dialog: DialogPort,
   ) {}
 
-  execute(itemId: string, messages: CollectItemMessages): void {
+  execute(
+    itemId: string,
+    messages?: CollectItemMessages,
+  ): void {
+    console.log(itemId);
+    
     if (this.inventory.hasItem(itemId)) {
-      this.dialog.show({
-        text: messages.alreadyHaveText,
-        hint: messages.hint,
-        mode: messages.mode ?? "read",
-      });
+      if (messages) {
+        this.dialog.show({
+          text: messages.alreadyHaveText,
+          hint: messages.hint,
+          mode: messages.mode ?? "read",
+        });
+      }
+
       return;
     }
 
     this.inventory.obtainItem(itemId);
-    this.dialog.show({
-      text: messages.obtainedText,
-      hint: messages.hint,
-      mode: messages.mode ?? "read",
-    });
+console.log('passou', itemId);
+
+    if (messages) {
+      this.dialog.show({
+        text: messages.obtainedText,
+        hint: messages.hint,
+        mode: messages.mode ?? "read",
+      });
+    }
   }
 }

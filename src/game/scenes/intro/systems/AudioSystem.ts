@@ -1,86 +1,59 @@
-import { Scene } from "phaser";
+import { AudioManager } from "../../../../managers/AudioManager";
 
 export class AudioSystem {
-  private scene: Scene;
-  private typeSound!: Phaser.Sound.BaseSound;
-  private deleteCharSound!: Phaser.Sound.BaseSound;
-  private selectSound!: Phaser.Sound.BaseSound;
-  private confirmSound!: Phaser.Sound.BaseSound;
-  private errorSound!: Phaser.Sound.BaseSound;
-  private bgMusic!: Phaser.Sound.BaseSound;
-
-  constructor(scene: Scene) {
-    this.scene = scene;
-  }
+  constructor(private readonly audio: AudioManager) {}
 
   setup(): void {
-    this.typeSound = this.scene.sound.add("typing", {
+    this.audio.createSound("type", "typing", {
       volume: 0.5,
     });
-
-    this.deleteCharSound = this.scene.sound.add("typing", {
+    this.audio.createSound("delete", "delete_char", {
       volume: 0.5,
     });
-
-    this.selectSound = this.scene.sound.add("snd_select", {
+    this.audio.createSound("select", "snd_select", {
       volume: 0.4,
     });
-    this.confirmSound = this.scene.sound.add(
-      "snd_confirm",
-      { volume: 0.5 }
-    );
-    this.errorSound = this.scene.sound.add("snd_error", {
+    this.audio.createSound("confirm", "snd_confirm", {
       volume: 0.5,
     });
-
-    this.bgMusic = this.scene.sound.add("intro_music", {
-      volume: 0.08,
-      loop: true,
+    this.audio.createSound("error", "snd_error", {
+      volume: 0.5,
     });
   }
 
   stopTypeSound(): void {
-    this.typeSound.stop();
+    this.audio.stopTypeSound();
   }
 
   playTypeSound(): void {
-    this.typeSound.play();
+    this.audio.playTypeSound();
   }
 
   stopDeleteCharSound(): void {
-    this.deleteCharSound.stop();
+    this.audio.stopDeleteSound();
   }
 
   playDeleteCharSound(): void {
-    this.deleteCharSound.play();
+    this.audio.playDeleteSound();
   }
 
   playSelect(): void {
-    this.selectSound.play({ volume: 0.2 });
+    this.audio.playSelectSound();
   }
 
   playConfirm(): void {
-    this.confirmSound.play({ rate: 1.2, volume: 0.3 });
+    this.audio.playConfirmSound();
   }
 
   playError(): void {
-    this.errorSound.play();
+    this.audio.playErrorSound();
   }
 
   fadeOutMusic(duration: number = 1500): void {
-    if (this.bgMusic && this.bgMusic.isPlaying) {
-      this.scene.tweens.add({
-        targets: this.bgMusic,
-        volume: 0,
-        duration: duration,
-        onComplete: () => this.bgMusic.stop(),
-      });
-    }
+    this.audio.fadeOutMusic(duration);
   }
 
   stopMusic(): void {
-    if (this.bgMusic && this.bgMusic.isPlaying) {
-      this.bgMusic.stop();
-    }
+    this.audio.stopMusic();
   }
 }

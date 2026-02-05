@@ -65,7 +65,9 @@ export class MainScene extends Scene {
   }
 
   create() {
-    const composition = new MainSceneComposition(this).build({
+    const composition = new MainSceneComposition(
+      this,
+    ).build({
       onStarted: () => {
         this.isReading = true;
       },
@@ -80,14 +82,17 @@ export class MainScene extends Scene {
     this.cursor = composition.cursor;
 
     this.audio = composition.audio;
-    this.collectItemUseCase = composition.collectItemUseCase;
+    this.collectItemUseCase =
+      composition.collectItemUseCase;
     this.fountainInteractionUseCase =
       composition.fountainInteractionUseCase;
-    this.insanosFlagUseCase = composition.insanosFlagUseCase;
+    this.insanosFlagUseCase =
+      composition.insanosFlagUseCase;
     this.showDialogUseCase = composition.showDialogUseCase;
     this.warpUseCase = composition.warpUseCase;
     this.interactionInput = composition.interactionInput;
-    this.dialogEventAdapter = composition.dialogEventAdapter;
+    this.dialogEventAdapter =
+      composition.dialogEventAdapter;
     this.timeScheduler = composition.timeScheduler;
 
     this.game.events.emit("scene-changed", "MainScene");
@@ -152,7 +157,12 @@ export class MainScene extends Scene {
   }
 
   update() {
-    if (!this.isPlayerReady) return;
+    if (
+      !this.player ||
+      !this.player.active ||
+      !this.isPlayerReady
+    )
+      return;
 
     if (this.isQuestionMode) {
       this.handleFountainQuestionInput();
@@ -304,8 +314,10 @@ export class MainScene extends Scene {
         this.player.y - 24 + animOffset,
       );
 
-      if (this.interactionInput.isInteractPressed() &&
-        !this.isReading) {
+      if (
+        this.interactionInput.isInteractPressed() &&
+        !this.isReading
+      ) {
         this.triggerAction(this.currentInteractiveObject);
       }
     } else {

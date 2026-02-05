@@ -80,7 +80,9 @@ export class UIScene extends Scene {
     this.cursorManager.initialize(this);
     this.cursorManager.setScene(this);
     this.cursorManager.setState("default");
-    const composition = new UISceneComposition(this).build();
+    const composition = new UISceneComposition(
+      this,
+    ).build();
     this.cursorPort = composition.cursorPort;
     this.settingsPort = composition.settingsPort;
     this.questQuery = composition.questQuery;
@@ -254,7 +256,7 @@ export class UIScene extends Scene {
   // ─────────────────────────────────────────────
   private initializeDialogSystem(): void {
     // Inicializa sistemas de áudio e digitação
-    this.audioSystem = new AudioSystem(this);
+    this.audioSystem = new AudioSystem(this.audio);
     this.audioSystem.setup();
 
     this.textTyper = new TextTyper(this, this.audioSystem);
@@ -291,7 +293,7 @@ export class UIScene extends Scene {
     this.game.events.on(
       "intro-set-hint",
       (hint: string | null) => {
-        this.dialogBox.setHint(hint);
+        this.dialogBox.setHint(hint, { reflow: false });
       },
     );
 
@@ -324,8 +326,10 @@ export class UIScene extends Scene {
         const mode = payload.mode ?? "read";
         this.currentDialogMode = mode;
 
-        this.dialogBox.show(payload.text);
-        this.dialogBox.setHint(payload.hint ?? null);
+        const hint = payload.hint ?? null;
+        this.dialogBox.setHint(hint, { reflow: false });
+        this.dialogBox.prepareLayoutFor(payload.text, hint);
+        this.dialogBox.show(payload.text, { autoResize: false });
       },
     );
 
@@ -367,11 +371,17 @@ export class UIScene extends Scene {
     this.dialogBox.clearHint();
 
     // Mostra o dialogBox
-    this.dialogBox.show("");
-
     if (hint) {
-      this.dialogBox.setHint(hint);
+      this.dialogBox.setHint(hint, { reflow: false });
+    } else {
+      this.dialogBox.clearHint();
     }
+
+    // Calcula e ajusta altura com base no texto FINAL e hint
+    this.dialogBox.prepareLayoutFor(text, hint ?? null);
+
+    // Agora sim mostra a caixa (com texto vazio, sem auto-resize)
+    this.dialogBox.show("", { autoResize: false });
 
     // Inicia a digitação
     this.isTyping = true;

@@ -32,9 +32,9 @@ export const ITEM_CATALOG: Record<string, InventoryItem> = {
   },
   issiPin: {
     id: "issi_pin",
-    name: "Pin I.S.S.I.",
+    name: "Cruz I.S.S.I.",
     description:
-      '"Algumas bandeiras não se explicam."\nUm símbolo de estrada, verdade e irmandade.\nQuem reconhece, entende.',
+      '"Algumas bandeiras não se explicam..."\nUm símbolo de estrada, lealdade e irmandade.\nSomos de verdade.',
     obtained: false,
     canBeDropped: false,
     canBeUsed: false,

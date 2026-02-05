@@ -213,37 +213,17 @@ export class InteriorScene extends Scene {
       (obj) => obj.name === "NPC_Ada",
     );
 
+    console.log(adaObj);
+    
+
     if (adaObj) {
       const x = adaObj.x || 0;
       const y = adaObj.y || 0;
 
-      const ada = this.npcs.create(x, y, "npc-ada-idle");
+      const ada = this.npcs.create(x, y, "npc_ada");
 
       ada.setOrigin(0.5, 1);
       ada.setDepth(10);
-
-      if (!this.anims.exists("ada-idle-down")) {
-        this.anims.create({
-          key: "ada-idle-down",
-          frames: this.anims.generateFrameNumbers(
-            "npc-ada-idle",
-            { start: 18, end: 23 },
-          ),
-          frameRate: 8,
-          repeat: -1,
-        });
-      }
-
-      ada.play("ada-idle-down");
-
-      if (ada.body) {
-        const width = 16;
-        const height = 10;
-        const offsetY = ada.height - height;
-
-        ada.body.setSize(width, height);
-        ada.body.setOffset(0, offsetY);
-      }
     }
   }
 

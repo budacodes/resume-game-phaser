@@ -21,7 +21,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     scene: Scene,
     x: number,
     y: number,
-    spriteKey?: string
+    spriteKey?: string,
   ) {
     // Use o spriteKey passado ou pegue do registry com fallback
     const spriteToUse =
@@ -52,25 +52,25 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         scene.input.keyboard.createCursorKeys();
 
       this.keyW = scene.input.keyboard.addKey(
-        Phaser.Input.Keyboard.KeyCodes.W
+        Phaser.Input.Keyboard.KeyCodes.W,
       );
       this.keyA = scene.input.keyboard.addKey(
-        Phaser.Input.Keyboard.KeyCodes.A
+        Phaser.Input.Keyboard.KeyCodes.A,
       );
       this.keyS = scene.input.keyboard.addKey(
-        Phaser.Input.Keyboard.KeyCodes.S
+        Phaser.Input.Keyboard.KeyCodes.S,
       );
       this.keyD = scene.input.keyboard.addKey(
-        Phaser.Input.Keyboard.KeyCodes.D
+        Phaser.Input.Keyboard.KeyCodes.D,
       );
     }
   }
 
   public setFacing(
-    direction: "up" | "down" | "right" | "left"
+    direction: "up" | "down" | "right" | "left",
   ) {
     this.lastDirection = direction;
-    this.anims.stop();
+    this.anims?.stop();
     this.setStaticFrame(direction);
   }
 
@@ -88,6 +88,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   private handleMovement() {
+    if (!this.active || !this.scene || !this.anims) return;
+
     const body = this.body as Phaser.Physics.Arcade.Body;
     let velocityX = 0;
     let velocityY = 0;
@@ -118,39 +120,39 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     const vector = new Phaser.Math.Vector2(
       velocityX,
-      velocityY
+      velocityY,
     ).normalize();
-    body.setVelocity(
+    body?.setVelocity(
       vector.x * this.speed,
-      vector.y * this.speed
+      vector.y * this.speed,
     );
 
     const isMoving =
-      body.velocity.x !== 0 || body.velocity.y !== 0;
+      body?.velocity.x !== 0 || body?.velocity.y !== 0;
 
     if (isMoving) {
       if (
-        Math.abs(body.velocity.x) >
-        Math.abs(body.velocity.y)
+        Math.abs(body?.velocity.x) >
+        Math.abs(body?.velocity.y)
       ) {
         // Movimento horizontal
-        if (body.velocity.x > 0) {
-          this.play("run-right", true);
-          this.setFlipX(false);
+        if (body?.velocity.x > 0) {
+          this?.play("run-right", true);
+          this?.setFlipX(false);
           this.lastDirection = "right";
         } else {
-          this.play("run-left", true);
-          this.setFlipX(false);
+          this?.play("run-left", true);
+          this?.setFlipX(false);
           this.lastDirection = "left";
         }
       } else {
         // Movimento vertical
-        this.setFlipX(false);
-        if (body.velocity.y > 0) {
-          this.play("run-down", true);
+        this?.setFlipX(false);
+        if (body?.velocity.y > 0) {
+          this?.play("run-down", true);
           this.lastDirection = "down";
         } else {
-          this.play("run-up", true);
+          this?.play("run-up", true);
           this.lastDirection = "up";
         }
       }
@@ -160,9 +162,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   private setStaticFrame(
-    direction: "down" | "up" | "right" | "left"
+    direction: "down" | "up" | "right" | "left",
   ) {
-    this.anims.stop();
+    this.anims?.stop();
 
     // Usa o primeiro frame de cada animação como frame estático
     switch (direction) {

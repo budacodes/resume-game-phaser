@@ -3,6 +3,7 @@ import { SettingsManager } from "../../../../managers/SettingsManager";
 import { SettingsPort } from "../../../../application/ports/SettingsPort";
 import { SettingsManagerAdapter } from "../../../../infrastructure/adapters/SettingsManagerAdapter";
 import BBCodeText from "phaser3-rex-plugins/plugins/bbcodetext.js";
+
 export class DialogBox {
   private scene: Scene;
   private container: Phaser.GameObjects.Container;
@@ -10,15 +11,26 @@ export class DialogBox {
   private typingTimer?: Phaser.Time.TimerEvent;
   public size: { width: number; height: number };
 
-  private hint: Phaser.GameObjects.Text; // Novo campo
+  private hint: Phaser.GameObjects.Text;
 
   private bg!: Phaser.GameObjects.Graphics;
   private shadow!: Phaser.GameObjects.Graphics;
 
   private readonly PADDING_TOP = 25;
-  private readonly PADDING_BOTTOM = 30;
+  /**
+   * Espaço inferior (abaixo do hint, quando o hint estiver visível).
+   * Quando o hint NÃO está visível, este padding é o espaço inferior do texto.
+   */
+  private readonly PADDING_BOTTOM = 40;
+
   private readonly PADDING_HORIZONTAL = 25;
+
+  /** Altura aproximada reservada para o hint */
   private readonly HINT_HEIGHT = 20;
+
+  /** Espaço entre o texto e o hint */
+  private readonly HINT_MARGIN_TOP = 10;
+
   private readonly MIN_HEIGHT = 120;
 
   constructor(
@@ -30,22 +42,23 @@ export class DialogBox {
     this.scene = scene;
     this.size = { width, height };
 
-    // Criamos o container
+    // Container
     this.container = this.scene.add
       .container(0, 0)
       .setDepth(1000)
       .setVisible(false);
 
-    // Pegamos as configurações atuais
+    // Settings
     const settingsProvider =
       settingsPort ??
       new SettingsManagerAdapter(
         SettingsManager.getInstance(this.scene.game),
       );
+
     const settings = settingsProvider.getSettings();
 
-    // Texto com escala de fonte aplicada
-    const fontSize = 16 + settings.fontSize * 8; // Ex: 0 -> 16px, 1 -> 24px
+    // Fonte com escala aplicada
+    const fontSize = 16 + settings.fontSize * 8;
 
     this.textContent = new BBCodeText(
       this.scene,
@@ -67,7 +80,7 @@ export class DialogBox {
       .text(0, 0, "[ ESPAÇO para continuar ]", {
         fontFamily: "VT323",
         fontSize: "14px",
-        color: "#00ff00", // Ou a cor de destaque do seu INTRO_CONFIG
+        color: "#00ff00",
       })
       .setOrigin(0.5, 1)
       .setVisible(false);
@@ -75,7 +88,7 @@ export class DialogBox {
     this.createBox();
     this.applyScale(settings.uiScale);
 
-    // Ouvir mudanças de escala globais
+    // Ouve mudanças globais
     this.scene.game.events.on(
       SettingsManager.EVENTS.UI_SETTINGS_CHANGED,
       (newSettings: any) => {
@@ -85,22 +98,37 @@ export class DialogBox {
     );
   }
 
-  private calculateHeightFromText(text: string): number {
-    // Texto temporário para cálculo
-    this.textContent.setText(text);
+  private calculateHeightFromText(
+    text: string,
+    includeHint: boolean,
+  ): number {
+    // IMPORTANTE: esse método é usado para medir o texto antes de exibir.
+    // Para evitar "pulos" visuais, preservamos o texto atual após a medição.
+    const previousText = this.textContent.text;
 
-    // Força update do BBCodeText
+    this.textContent.setText(text);
     this.textContent.updateText();
 
     const bounds = this.textContent.getBounds();
     const textHeight = bounds.height;
 
-    let totalHeight =
-      this.PADDING_TOP + textHeight + this.PADDING_BOTTOM;
+    // Restaura o texto anterior
+    this.textContent.setText(previousText);
+    this.textContent.updateText();
 
-    // Se o hint estiver visível, reserva espaço
-    if (this.hint.visible) {
-      totalHeight += this.HINT_HEIGHT;
+    // Altura base (topo + texto)
+    let totalHeight = this.PADDING_TOP + textHeight;
+
+    // Área inferior:
+    // - sem hint: apenas PADDING_BOTTOM
+    // - com hint: margem acima do hint + hint + PADDING_BOTTOM (espaço abaixo do hint)
+    if (includeHint) {
+      totalHeight +=
+        this.HINT_MARGIN_TOP +
+        this.HINT_HEIGHT +
+        this.PADDING_BOTTOM;
+    } else {
+      totalHeight += this.PADDING_BOTTOM;
     }
 
     return Math.max(totalHeight, this.MIN_HEIGHT);
@@ -111,7 +139,7 @@ export class DialogBox {
   }
 
   clearHint(): void {
-    this.setHint(null);
+    this.setHint(null, { reflow: false });
   }
 
   private createBox(): void {
@@ -129,7 +157,7 @@ export class DialogBox {
       );
 
     this.bg = this.scene.add.graphics();
-    this.bg.fillStyle(0x222222, 0.9); // Cor padrão escura
+    this.bg.fillStyle(0x222222, 0.9);
     this.bg.lineStyle(2, 0xffffff, 0.8);
     this.bg.fillRoundedRect(
       -width / 2,
@@ -146,13 +174,16 @@ export class DialogBox {
       12,
     );
 
-    // Posicionar o prompt na parte inferior interna da caixa
-    this.hint.setPosition(0, height / 2 - 15);
-
+    // Posições iniciais
     this.textContent.setOrigin(0, 0);
     this.textContent.setPosition(
-      -width / 2 + 25,
-      -height / 2 + 25,
+      -width / 2 + this.PADDING_HORIZONTAL,
+      -height / 2 + this.PADDING_TOP,
+    );
+
+    this.hint.setPosition(
+      0,
+      height / 2 - this.PADDING_BOTTOM,
     );
 
     this.container.add([
@@ -162,7 +193,7 @@ export class DialogBox {
       this.hint,
     ]);
 
-    // Centraliza na base da tela por padrão
+    // Base da tela
     this.container.setPosition(
       this.scene.scale.width / 2,
       this.scene.scale.height - height / 2 - 40,
@@ -204,50 +235,80 @@ export class DialogBox {
         12,
       );
 
-    // Reposiciona texto
+    // Texto sempre no topo interno
     this.textContent.setPosition(
-      -width / 2 + 25,
-      -height / 2 + 25,
+      -width / 2 + this.PADDING_HORIZONTAL,
+      -height / 2 + this.PADDING_TOP,
     );
 
-    // Reposiciona hint
-    this.hint.setPosition(0, height / 2 - 15);
+    // Hint sempre no rodapé interno
+    this.hint.setPosition(
+      0,
+      height / 2 - this.PADDING_BOTTOM,
+    );
 
-    // Reposiciona container na tela
+    // Reposiciona container na tela (base)
     this.container.setPosition(
       this.scene.scale.width / 2,
       this.scene.scale.height - height / 2 - 40,
     );
   }
 
-  public setHint(text: string | null): void {
+  public setHint(
+    text: string | null,
+    opts?: { reflow?: boolean; blink?: boolean },
+  ): void {
     if (!this.hint) return;
+
+    const reflow = opts?.reflow ?? true;
+    const blink = opts?.blink ?? true;
 
     if (text === null) {
       this.hint.setVisible(false);
       this.scene.tweens.killTweensOf(this.hint);
+      this.hint.alpha = 1;
+
+      if (reflow) {
+        this.prepareLayoutFor(this.textContent.text);
+      }
       return;
     }
 
     this.hint.setText(text);
     this.hint.setVisible(true);
 
-    // Reinicia o efeito de piscar para o novo texto
+    if (reflow) {
+      this.prepareLayoutFor(this.textContent.text);
+    }
+
+    // Piscar opcional
     this.scene.tweens.killTweensOf(this.hint);
     this.hint.alpha = 1;
-    this.scene.tweens.add({
-      targets: this.hint,
-      alpha: { from: 1, to: 0.3 },
-      duration: 800,
-      yoyo: true,
-      repeat: -1,
-    });
+
+    if (blink) {
+      this.scene.tweens.add({
+        targets: this.hint,
+        alpha: { from: 1, to: 0.3 },
+        duration: 800,
+        yoyo: true,
+        repeat: -1,
+      });
+    }
   }
 
-  public setContinueVisible(visible: boolean): void {
+  public setContinueVisible(
+    visible: boolean,
+    opts?: { blink?: boolean },
+  ): void {
     this.hint.setVisible(visible);
-    if (visible) {
-      // Opcional: Adicionar um pequeno efeito de piscar
+
+    // Evita empilhar tweens
+    this.scene.tweens.killTweensOf(this.hint);
+    this.hint.alpha = 1;
+
+    const blink = opts?.blink ?? true;
+
+    if (visible && blink) {
       this.scene.tweens.add({
         targets: this.hint,
         alpha: { from: 0.4, to: 1 },
@@ -255,14 +316,12 @@ export class DialogBox {
         yoyo: true,
         repeat: -1,
       });
-    } else {
-      this.scene.tweens.killTweensOf(this.hint);
-      this.hint.alpha = 1;
     }
   }
 
   private applyScale(scale: number) {
     this.container.setScale(scale);
+
     // Reposiciona para garantir que não saia da tela ao crescer
     this.container.y =
       this.scene.scale.height -
@@ -275,21 +334,48 @@ export class DialogBox {
     this.textContent.setFontSize(`${newSize}px`);
   }
 
-  public show(text: string): void {
-    this.stopTyping(); // Garante que qualquer timer interno antigo morra
-
-    const height = this.calculateHeightFromText(text);
+  public prepareLayoutFor(
+    fullText: string,
+    hintText?: string | null,
+  ): void {
+    const includeHint = hintText !== null && hintText !== undefined;
+    const height = this.calculateHeightFromText(
+      fullText,
+      includeHint,
+    );
     this.resize(height);
+  }
+
+  public show(
+    text: string = "",
+    opts?: { autoResize?: boolean; animate?: boolean },
+  ): void {
+    this.stopTyping();
+
+    const autoResize = opts?.autoResize ?? true;
+    const animate = opts?.animate ?? true;
+
+    if (autoResize) {
+      const height = this.calculateHeightFromText(
+        text,
+        this.hint.visible,
+      );
+      this.resize(height);
+    }
 
     this.container.setVisible(true);
     this.textContent.setText(text);
 
-    this.scene.tweens.add({
-      targets: this.container,
-      scaleY: { from: 0, to: 1 },
-      duration: 500,
-      ease: "Back.Out",
-    });
+    if (animate) {
+      this.scene.tweens.add({
+        targets: this.container,
+        scaleY: { from: 0, to: 1 },
+        duration: 500,
+        ease: "Back.Out",
+      });
+    } else {
+      this.container.setScale(this.container.scaleX, 1);
+    }
   }
 
   public hide(): void {
@@ -300,7 +386,7 @@ export class DialogBox {
 
   private stopTyping() {
     if (this.typingTimer) {
-      this.typingTimer.destroy(); // Use destroy para garantir que o evento pare
+      this.typingTimer.destroy();
       this.typingTimer = undefined;
     }
   }

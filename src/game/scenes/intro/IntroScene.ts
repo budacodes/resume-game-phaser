@@ -27,6 +27,7 @@ import { CursorPort } from "../../../application/ports/CursorPort";
 import { SettingsPort } from "../../../application/ports/SettingsPort";
 import { AudioManagerAdapter } from "../../../infrastructure/adapters/AudioManagerAdapter";
 import { IntroSceneComposition } from "../../../composition/IntroSceneComposition";
+import { CollectItemUseCase } from "../../../application/usecases/CollectItemUseCase";
 
 export class IntroScene extends Scene {
   private currentStep = 0;
@@ -65,6 +66,8 @@ export class IntroScene extends Scene {
   private careerOptions!: CareerOptions;
   private playerCareer: PlayerCareer | null = null;
 
+  private collectItemUseCase!: CollectItemUseCase;
+
   constructor() {
     super("IntroScene");
   }
@@ -101,6 +104,8 @@ export class IntroScene extends Scene {
     const composition = new IntroSceneComposition(
       this,
     ).build();
+    this.collectItemUseCase =
+      composition.collectItemUseCase;
     this.audioManager = composition.audioManager;
     this.textManager = composition.textManager;
     this.settingsMenu = composition.settingsMenu;
@@ -114,7 +119,7 @@ export class IntroScene extends Scene {
       "intro-dialog-typing-finished",
       () => {
         this.onDialogTypingFinished();
-      }
+      },
     );
 
     // Listener para quando o usuário apertar SPACE para continuar
@@ -135,17 +140,17 @@ export class IntroScene extends Scene {
     if (this.nameInputActive) return;
 
     // Lógica específica de cada step
-    if (this.currentStep === 2) {
+    if (this.currentStep === 3) {
       this.showNameInput();
       return;
     }
 
-    if (this.currentStep === 3) {
+    if (this.currentStep === 4) {
       this.showGenderSelection();
       return;
     }
 
-    if (this.currentStep === 4) {
+    if (this.currentStep === 5) {
       this.showCareerSelection();
       return;
     }
@@ -161,7 +166,7 @@ export class IntroScene extends Scene {
       (event: KeyboardEvent) => {
         event.preventDefault();
         this.toggleSettingsMenu();
-      }
+      },
     );
 
     this.input.keyboard?.on(
@@ -169,7 +174,7 @@ export class IntroScene extends Scene {
       (event: KeyboardEvent) => {
         event.preventDefault();
         this.toggleFullscreen();
-      }
+      },
     );
 
     this.input.keyboard?.on(
@@ -177,7 +182,7 @@ export class IntroScene extends Scene {
       (event: KeyboardEvent) => {
         event.preventDefault();
         this.togglePause();
-      }
+      },
     );
   }
 
@@ -208,7 +213,7 @@ export class IntroScene extends Scene {
   }
 
   private showFullscreenFeedback(
-    isFullscreen: boolean
+    isFullscreen: boolean,
   ): void {
     const message = isFullscreen
       ? "TELA CHEIA ATIVADA"
@@ -275,7 +280,7 @@ export class IntroScene extends Scene {
           padding: { x: 30, y: 15 },
           stroke: "#000000",
           strokeThickness: 4,
-        }
+        },
       )
       .setOrigin(0.5);
 
@@ -301,7 +306,7 @@ export class IntroScene extends Scene {
     this.canContinue = false;
     this.game.events.emit(
       "intro-set-hint",
-      "[ ESPAÇO para continuar ]"
+      "[ ESPAÇO para continuar ]",
     );
 
     this.tweens.pauseAll();
@@ -322,7 +327,7 @@ export class IntroScene extends Scene {
   }
 
   private initializeSystems(): void {
-    this.audio = new AudioSystem(this);
+    this.audio = new AudioSystem(this.audioManager);
     this.audio.setup();
 
     this.inputSystem = new InputSystem(this);
@@ -336,7 +341,7 @@ export class IntroScene extends Scene {
     this.characterWithAura = new CharacterWithAura(
       this,
       this.scale.width / 2 - 75,
-      300
+      300,
     );
 
     this.faceFrame = new FaceFrame(this);
@@ -351,7 +356,7 @@ export class IntroScene extends Scene {
     this.budaSprite.on("animationstart", () => {
       this.codeRainBackground.createShockwave(
         this.budaSprite.x,
-        this.budaSprite.y - 50
+        this.budaSprite.y - 50,
       );
     });
 
@@ -361,10 +366,10 @@ export class IntroScene extends Scene {
         if (Math.random() < 0.3) {
           this.codeRainBackground.createTrail(
             pointer.x,
-            pointer.y
+            pointer.y,
           );
         }
-      }
+      },
     );
   }
 
@@ -414,7 +419,7 @@ export class IntroScene extends Scene {
           1,
           this.scale.width / 2,
           this.scale.height - this.planet.height / 2 - 250,
-          1
+          1,
         );
         this.showText(INTRO_STEPS[0].text);
         break;
@@ -427,36 +432,41 @@ export class IntroScene extends Scene {
           0.5,
           this.scale.width / 2,
           this.scale.height - this.planet.height / 2 - 250,
-          1
+          1,
         );
         this.showText(INTRO_STEPS[1].text);
         break;
 
-      case 2: // Nome
+      case 2:
         this.budaDog.hide(0);
         this.showText(INTRO_STEPS[2].text);
+        this.collectItemUseCase.execute("issi_pin");
         break;
 
-      case 3: // Gênero
+      case 3: // Nome
         this.showText(INTRO_STEPS[3].text);
+        break;
+
+      case 4: // Gênero
+        this.showText(INTRO_STEPS[4].text);
         this.titleText?.destroy();
         break;
 
-      case 4: // Cargo (Apenas a pergunta)
+      case 5: // Cargo (Apenas a pergunta)
         this.faceFrame.hideAll();
         this.genderOptions?.destroy();
         this.characterWithAura.destroy();
         this.titleText?.destroy();
 
-        this.showText(INTRO_STEPS[4].text);
-        break;
-
-      case 5: // "Conexão estabelecida! Gerando sua chave..."
-        this.titleText?.destroy();
         this.showText(INTRO_STEPS[5].text);
         break;
 
-      case 6: // MOSTRAR O CARTÃO + MENSAGEM FINAL
+      case 6: // "Conexão estabelecida! Gerando sua chave..."
+        this.titleText?.destroy();
+        this.showText(INTRO_STEPS[6].text);
+        break;
+
+      case 7: // MOSTRAR O CARTÃO + MENSAGEM FINAL
         this.game.events.emit("intro-clear-dialog");
 
         this.createPlayerIdCard();
@@ -464,13 +474,13 @@ export class IntroScene extends Scene {
         this.time.delayedCall(2000, () => {
           this.showText(
             `Protocolos de acesso finalizados. A simulação está pronta para você, ${this.registry.get(
-              "playerName"
-            )}.\nIniciando sequência de boot... Aproveite a jornada!`
+              "playerName",
+            )}.\nIniciando sequência de boot... Aproveite a jornada!`,
           );
         });
         break;
 
-      case 7: // Finalização real (transição para MainScene)
+      case 8: // Finalização real (transição para MainScene)
         this.completeIntroduction();
         break;
     }
@@ -516,14 +526,14 @@ export class IntroScene extends Scene {
     this.registry.set("playerCareer", this.playerCareer);
     localStorage.setItem(
       "player_career",
-      JSON.stringify(this.playerCareer)
+      JSON.stringify(this.playerCareer),
     );
 
     this.audioManager.playSFX("snd_confirm");
 
     this.codeRainBackground.createMatrixEffect(
       this.scale.width / 2,
-      320
+      320,
     );
 
     // Remove listeners de teclado imediatamente
@@ -582,7 +592,7 @@ export class IntroScene extends Scene {
     // Atualiza o hint via UIScene
     this.game.events.emit(
       "intro-set-hint",
-      "[ ESPAÇO para continuar ]"
+      "[ ESPAÇO para continuar ]",
     );
   }
 
@@ -609,12 +619,12 @@ export class IntroScene extends Scene {
         this.registry.set("playerName", this.playerName);
         localStorage.setItem(
           "player_name",
-          JSON.stringify(this.playerName)
+          JSON.stringify(this.playerName),
         );
 
         this.codeRainBackground.createMatrixEffect(
           this.scale.width / 2,
-          320
+          320,
         );
 
         this.time.delayedCall(800, () => {
@@ -626,7 +636,7 @@ export class IntroScene extends Scene {
           this.game.canvas.focus();
           this.input.manager.enabled = true;
 
-          this.currentStep = 3;
+          this.currentStep = 4;
           this.showStep();
         });
       },
@@ -676,14 +686,14 @@ export class IntroScene extends Scene {
           fontFamily: INTRO_CONFIG.fonts.title.fontFamily,
           fontSize: INTRO_CONFIG.fonts.title.fontSize,
           color: this.convertColorToString(
-            INTRO_CONFIG.colors.title
+            INTRO_CONFIG.colors.title,
           ),
           backgroundColor: "rgba(0, 0, 0, 0.7)",
           padding: { x: 20, y: 10 },
           align: "center",
           stroke: "#000000",
           strokeThickness: 4,
-        }
+        },
       )
       .setOrigin(0.5)
       .setDepth(25);
@@ -702,7 +712,7 @@ export class IntroScene extends Scene {
     this.registry.set("playerGender", this.playerGender);
     localStorage.setItem(
       "player_gender",
-      JSON.stringify(this.playerGender)
+      JSON.stringify(this.playerGender),
     );
 
     this.genderOptions?.highlightSelected(gender);
@@ -713,7 +723,7 @@ export class IntroScene extends Scene {
 
     this.codeRainBackground.createMatrixEffect(
       this.scale.width / 2,
-      320
+      320,
     );
 
     // Remove listeners de teclado antes de avançar
@@ -729,7 +739,7 @@ export class IntroScene extends Scene {
   private completeIntroduction(): void {
     this.registry.set(
       "playerSprite",
-      `${this.playerGender}-run`
+      `${this.playerGender}-run`,
     );
 
     if (this.idCard) {
@@ -763,7 +773,7 @@ export class IntroScene extends Scene {
 
     this.codeRainBackground.createMatrixEffect(
       this.scale.width / 2,
-      320
+      320,
     );
 
     this.cameras.main.fadeOut(2000, 0, 0, 0);
@@ -787,7 +797,7 @@ export class IntroScene extends Scene {
           spawnName: "spawn_start",
           facingDirection: "down",
         });
-      }
+      },
     );
   }
 

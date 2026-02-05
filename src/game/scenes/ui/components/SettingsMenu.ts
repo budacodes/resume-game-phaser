@@ -263,57 +263,183 @@ export class SettingsMenu {
     );
     cursorY += this.rowHeight;
 
-    this.addSliderRow("Escala da UI:", cursorY, "uiScale");
+    // ===== INSTRUÇÕES
+    const instructionsTitle = this.scene.add
+      .text(0, cursorY, "INSTRUÇÕES", {
+        fontFamily: "'VT323'",
+        fontSize: "32px",
+        color: `#${COLORS.gold}`,
+      })
+      .setOrigin(0.5);
+
+    this.container.add(instructionsTitle);
     cursorY += this.rowHeight;
 
-    this.addFontSizeRow(cursorY);
-    cursorY += this.rowHeight + 10;
-
-    // ===== TELA CHEIA
-    this.addLabel(
-      "Tela Cheia:",
-      -this.panelWidth / 2 + this.panelPadding,
-      cursorY,
-    );
-
-    const toggleX = -68;
-    const fullscreenToggle = this.scene.add
-      .sprite(toggleX, cursorY, "expand")
-      // .rectangle(toggleX, cursorY, 24, 14, 0xff4d4d)
+    const btnE = this.scene.add
+      .sprite(
+        -this.panelWidth / 2 + this.panelPadding * 1.5,
+        cursorY,
+        "keys",
+        20,
+      )
       .setOrigin(0.5)
-      .setScale(2)
-      .setInteractive({ useHandCursor: false });
+      .setInteractive({ useHandCursor: false })
+      .setScale(2);
+    this.container.add(btnE);
 
-    // Interatividade do toggle de tela cheia
-    fullscreenToggle.on("pointerdown", () => {
-      this.settings.fullscreen = !this.settings.fullscreen;
-      // fullscreenToggle.setFillStyle(
-      //   this.settings.fullscreen ? 0x4dff4d : 0xff4d4d
-      // );
-      fullscreenToggle.setTexture(
-        this.settings.fullscreen ? "minimize" : "expand",
-      );
+    const btnEInstruction = this.scene.add
+      .text(
+        -this.panelWidth / 2 + 56,
+        cursorY - 12,
+        "Interagir com objetos",
+        {
+          fontFamily: "'VT323'",
+          fontSize: "20px",
+          color: `#FFFFFF`,
+        },
+      )
+      .setOrigin(0);
+    this.container.add(btnEInstruction);
+    cursorY += this.rowHeight;
 
-      if (this.settings.fullscreen) {
-        this.scene.scale.startFullscreen();
-      } else {
-        this.scene.scale.stopFullscreen();
-      }
-    });
+    const btnI = this.scene.add
+      .sprite(
+        -this.panelWidth / 2 + this.panelPadding * 1.5,
+        cursorY,
+        "keys",
+        24,
+      )
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: false })
+      .setScale(2);
+    this.container.add(btnI);
 
-    fullscreenToggle.on("pointerover", () => {
-      this.cursorManager.setState("hover");
-      fullscreenToggle.setTintFill(+`0x${COLORS.gold}`);
-    });
+    const btnIInstruction = this.scene.add
+      .text(
+        -this.panelWidth / 2 + 56,
+        cursorY - 12,
+        "Abrir inventário",
+        {
+          fontFamily: "'VT323'",
+          fontSize: "20px",
+          color: `#FFFFFF`,
+        },
+      )
+      .setOrigin(0);
 
-    fullscreenToggle.on("pointerout", () => {
-      this.cursorManager.setState("default");
-      fullscreenToggle.setTintFill(0xffffff);
-    });
+    this.container.add(btnIInstruction);
 
-    this.container.add(fullscreenToggle);
+    cursorY += this.rowHeight;
 
-    cursorY += 56;
+    const btnQ = this.scene.add
+      .sprite(
+        -this.panelWidth / 2 + this.panelPadding * 1.5,
+        cursorY,
+        "keys",
+        32,
+      )
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: false })
+      .setScale(2);
+    this.container.add(btnQ);
+
+    const btnQInstruction = this.scene.add
+      .text(
+        -this.panelWidth / 2 + 56,
+        cursorY - 12,
+        "Abrir Diário de Missões",
+        {
+          fontFamily: "'VT323'",
+          fontSize: "20px",
+          color: `#FFFFFF`,
+        },
+      )
+      .setOrigin(0);
+
+    this.container.add(btnQInstruction);
+
+    cursorY += this.rowHeight;
+
+    const btnEsc = this.scene.add
+      .sprite(
+        -this.panelWidth / 2 + this.panelPadding * 1.5,
+        cursorY,
+        "special_keys",
+        1,
+      )
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: false })
+      .setScale(2);
+    this.container.add(btnEsc);
+
+    const btnEscInstruction = this.scene.add
+      .text(
+        -this.panelWidth / 2 + 56,
+        cursorY - 12,
+        "Abrir Menu de Configurações",
+        {
+          fontFamily: "'VT323'",
+          fontSize: "20px",
+          color: `#FFFFFF`,
+        },
+      )
+      .setOrigin(0);
+
+    this.container.add(btnEscInstruction);
+
+    cursorY += this.rowHeight;
+
+    // this.addSliderRow("Escala da UI:", cursorY, "uiScale");
+    // cursorY += this.rowHeight;
+
+    // this.addFontSizeRow(cursorY);
+    // cursorY += this.rowHeight + 10;
+
+    // // ===== TELA CHEIA
+    // this.addLabel(
+    //   "Tela Cheia:",
+    //   -this.panelWidth / 2 + this.panelPadding,
+    //   cursorY,
+    // );
+
+    // const toggleX = -68;
+    // const fullscreenToggle = this.scene.add
+    //   .sprite(toggleX, cursorY, "expand")
+    //   // .rectangle(toggleX, cursorY, 24, 14, 0xff4d4d)
+    //   .setOrigin(0.5)
+    //   .setScale(2)
+    //   .setInteractive({ useHandCursor: false });
+
+    // // Interatividade do toggle de tela cheia
+    // fullscreenToggle.on("pointerdown", () => {
+    //   this.settings.fullscreen = !this.settings.fullscreen;
+    //   // fullscreenToggle.setFillStyle(
+    //   //   this.settings.fullscreen ? 0x4dff4d : 0xff4d4d
+    //   // );
+    //   fullscreenToggle.setTexture(
+    //     this.settings.fullscreen ? "minimize" : "expand",
+    //   );
+
+    //   if (this.settings.fullscreen) {
+    //     this.scene.scale.startFullscreen();
+    //   } else {
+    //     this.scene.scale.stopFullscreen();
+    //   }
+    // });
+
+    // fullscreenToggle.on("pointerover", () => {
+    //   this.cursorManager.setState("hover");
+    //   fullscreenToggle.setTintFill(+`0x${COLORS.gold}`);
+    // });
+
+    // fullscreenToggle.on("pointerout", () => {
+    //   this.cursorManager.setState("default");
+    //   fullscreenToggle.setTintFill(0xffffff);
+    // });
+
+    // this.container.add(fullscreenToggle);
+
+    // cursorY += 56;
 
     // ===== BOTÃO APLICAR
     const applyButton = this.scene.add

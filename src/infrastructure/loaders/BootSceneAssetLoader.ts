@@ -51,7 +51,7 @@ export class BootSceneAssetLoader {
     );
 
     this.scene.load.image("btn-e", "assets/ui/key_e.png");
-
+    
     this.scene.load.image(
       "icon_sound_on",
       "assets/ui/icon_sound_on.png",
@@ -108,15 +108,6 @@ export class BootSceneAssetLoader {
 
   preloadSpritesheets(): void {
     this.scene.load.spritesheet(
-      "bob-idle",
-      "assets/sprites/bob-idle.png",
-      {
-        frameWidth: 16,
-        frameHeight: 32,
-      },
-    );
-
-    this.scene.load.spritesheet(
       "male-run",
       "assets/sprites/male.png",
       {
@@ -125,21 +116,30 @@ export class BootSceneAssetLoader {
       },
     );
 
-    this.scene.load.spritesheet(
-      "npc-ada-idle",
-      "assets/sprites/ada-idle.png",
+    this.scene.load.spritesheet("keys", "assets/ui/keys.png", 
       {
         frameWidth: 16,
-        frameHeight: 32,
-      },
+        frameHeight: 16,
+        startFrame: 0,
+        endFrame: 111,
+      }
+    );
+    
+    this.scene.load.spritesheet("special_keys", "assets/ui/special_keys.png", 
+      {
+        frameWidth: 32,
+        frameHeight: 16,
+        startFrame: 0,
+        endFrame: 31,
+      }
     );
 
     this.scene.load.spritesheet(
-      "npc-ada-run",
-      "assets/sprites/ada-run.png",
+      "npc_ada",
+      "assets/sprites/npc_ada.png",
       {
-        frameWidth: 16,
-        frameHeight: 32,
+        frameWidth: 14,
+        frameHeight: 26,
       },
     );
 
@@ -215,7 +215,7 @@ export class BootSceneAssetLoader {
 
     this.scene.load.spritesheet(
       "issi_pin",
-      "assets/sprites/pin_insanos_16x16.png",
+      "assets/sprites/patch_cruz.png",
       {
         frameWidth: 16,
         frameHeight: 16,

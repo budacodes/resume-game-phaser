@@ -1,13 +1,17 @@
 import Phaser from "phaser";
-import { AudioManager } from "../managers/AudioManager";
-import { TextManager } from "../managers/TextManager";
-import { SettingsManager } from "../managers/SettingsManager";
-import { SettingsPort } from "../application/ports/SettingsPort";
-import { SettingsManagerAdapter } from "../infrastructure/adapters/SettingsManagerAdapter";
 import { CursorPort } from "../application/ports/CursorPort";
-import { CursorManager } from "../managers/CursorManager";
-import { CursorManagerAdapter } from "../infrastructure/adapters/CursorManagerAdapter";
+import { SettingsPort } from "../application/ports/SettingsPort";
+import { CollectItemUseCase } from "../application/usecases/CollectItemUseCase";
 import { SettingsMenu } from "../game/scenes/ui/components/SettingsMenu";
+import { CursorManagerAdapter } from "../infrastructure/adapters/CursorManagerAdapter";
+import { InventoryManagerRepository } from "../infrastructure/adapters/InventoryManagerRepository";
+import { PhaserDialogPresenter } from "../infrastructure/adapters/PhaserDialogPresenter";
+import { SettingsManagerAdapter } from "../infrastructure/adapters/SettingsManagerAdapter";
+import { AudioManager } from "../managers/AudioManager";
+import { CursorManager } from "../managers/CursorManager";
+import { InventoryManager } from "../managers/InventoryManager";
+import { SettingsManager } from "../managers/SettingsManager";
+import { TextManager } from "../managers/TextManager";
 
 export interface IntroSceneCompositionResult {
   audioManager: AudioManager;
@@ -15,12 +19,17 @@ export interface IntroSceneCompositionResult {
   settingsMenu: SettingsMenu;
   settingsPort: SettingsPort;
   cursorPort: CursorPort;
+  collectItemUseCase: CollectItemUseCase;
+  dialogPresenter: PhaserDialogPresenter;
 }
 
 export class IntroSceneComposition {
   constructor(private readonly scene: Phaser.Scene) {}
 
   build(): IntroSceneCompositionResult {
+    const inventoryManager = InventoryManager.getInstance();
+    const inventoryRepository =
+      new InventoryManagerRepository(inventoryManager);
     const settingsManager = SettingsManager.getInstance(
       this.scene.game,
     );
@@ -37,8 +46,16 @@ export class IntroSceneComposition {
       cursorPort,
       settingsPort,
     );
+    const dialogPresenter = new PhaserDialogPresenter(
+      this.scene,
+    );
 
     return {
+      collectItemUseCase: new CollectItemUseCase(
+        inventoryRepository,
+        dialogPresenter,
+      ),
+      dialogPresenter,
       audioManager,
       textManager,
       settingsMenu,

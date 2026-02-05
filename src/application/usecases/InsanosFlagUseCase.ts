@@ -19,7 +19,7 @@ export class InsanosFlagUseCase {
 
   showIntroDialog(): void {
     this.dialog.show({
-      text: "Algumas bandeiras não se explicam.",
+      text: "Algumas bandeiras não se explicam...",
       mode: "read",
     });
   }
