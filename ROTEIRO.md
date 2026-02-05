@@ -5,6 +5,7 @@
 - [ ] adicionar sprite do buda
 - [ ] adicionar quests reais com a implementação da finalização delas
 - [x] ajustar a hitbox da fonte no centro da cidade
+- [x] ajustar dialog box para que cresça conforme o texto mesmo na introscene
 
 <br/>
 
