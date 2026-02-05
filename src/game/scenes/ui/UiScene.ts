@@ -293,7 +293,9 @@ export class UIScene extends Scene {
     this.game.events.on(
       "intro-set-hint",
       (hint: string | null) => {
-        this.dialogBox.setHint(hint, { reflow: false });
+        this.dialogBox.setHint(this.formatHint(hint), {
+          reflow: false,
+        });
       },
     );
 
@@ -326,7 +328,7 @@ export class UIScene extends Scene {
         const mode = payload.mode ?? "read";
         this.currentDialogMode = mode;
 
-        const hint = payload.hint ?? null;
+        const hint = this.formatHint(payload.hint ?? null);
         this.dialogBox.setHint(hint, { reflow: false });
         this.dialogBox.prepareLayoutFor(payload.text, hint);
         this.dialogBox.show(payload.text, { autoResize: false });
@@ -335,12 +337,17 @@ export class UIScene extends Scene {
 
     // Listener para SPACE durante digitação da intro
     this.input.keyboard?.on("keydown-SPACE", () => {
-      this.handleSpacePress();
+      this.handleDialogAdvance();
     });
 
     // Listener para E durante diálogos da MainScene/InteriorScene
     this.input.keyboard?.on("keydown-E", () => {
       this.handleEPress();
+    });
+
+    // Toque/click em qualquer lugar da tela
+    this.input.on("pointerdown", () => {
+      this.handleDialogAdvance();
     });
   }
 
@@ -372,13 +379,18 @@ export class UIScene extends Scene {
 
     // Mostra o dialogBox
     if (hint) {
-      this.dialogBox.setHint(hint, { reflow: false });
+      this.dialogBox.setHint(this.formatHint(hint), {
+        reflow: false,
+      });
     } else {
       this.dialogBox.clearHint();
     }
 
     // Calcula e ajusta altura com base no texto FINAL e hint
-    this.dialogBox.prepareLayoutFor(text, hint ?? null);
+    this.dialogBox.prepareLayoutFor(
+      text,
+      this.formatHint(hint ?? null),
+    );
 
     // Agora sim mostra a caixa (com texto vazio, sem auto-resize)
     this.dialogBox.show("", { autoResize: false });
@@ -411,7 +423,12 @@ export class UIScene extends Scene {
     this.canContinueDialog = false;
   }
 
-  private handleSpacePress(): void {
+  private handleDialogAdvance(): void {
+    // Se o dialogBox não estiver visível, ignora
+    if (!this.dialogBox.isVisible()) {
+      return;
+    }
+
     // Se estiver na MainScene, usa o comportamento antigo
     if (this.currentDialogMode === "read") {
       this.game.events.emit("hide-dialog");
@@ -422,11 +439,6 @@ export class UIScene extends Scene {
     if (
       this.currentDialogMode !== ("intro" as DialogMode)
     ) {
-      return;
-    }
-
-    // Se o dialogBox não estiver visível, ignora
-    if (!this.dialogBox.isVisible()) {
       return;
     }
 
@@ -442,6 +454,16 @@ export class UIScene extends Scene {
       this.canContinueDialog = false; // Previne múltiplos disparos
       this.game.events.emit("intro-dialog-continue");
     }
+  }
+
+  private formatHint(
+    hint: string | null,
+  ): string | null {
+    if (!hint) return hint;
+    if (this.isTouchDevice || this.isMobileDevice) {
+      return hint.replace(/ESPAÇO/gi, "TOQUE");
+    }
+    return hint;
   }
 
   // ─────────────────────────────────────────────
