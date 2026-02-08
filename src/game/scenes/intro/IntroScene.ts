@@ -140,17 +140,17 @@ export class IntroScene extends Scene {
     if (this.nameInputActive) return;
 
     // Lógica específica de cada step
-    if (this.currentStep === 3) {
+    if (this.currentStep === 4) {
       this.showNameInput();
       return;
     }
 
-    if (this.currentStep === 4) {
+    if (this.currentStep === 5) {
       this.showGenderSelection();
       return;
     }
 
-    if (this.currentStep === 5) {
+    if (this.currentStep === 6) {
       this.showCareerSelection();
       return;
     }
@@ -414,6 +414,8 @@ export class IntroScene extends Scene {
 
     switch (this.currentStep) {
       case 0: // Planeta
+        console.log("planeta");
+
         this.planet.show(
           0.5,
           1,
@@ -424,7 +426,8 @@ export class IntroScene extends Scene {
         this.showText(INTRO_STEPS[0].text);
         break;
 
-      case 1: // Prédio
+      case 1: // Zelda
+        console.log("Zelda");
         this.planet.hide(0);
 
         this.budaDog.show(
@@ -437,36 +440,43 @@ export class IntroScene extends Scene {
         this.showText(INTRO_STEPS[1].text);
         break;
 
-      case 2:
+      case 2: // Bloco de Notas
+        console.log("Bloco de notas");
+
         this.budaDog.hide(0);
         this.showText(INTRO_STEPS[2].text);
         this.collectItemUseCase.execute("issi_pin");
         break;
 
-      case 3: // Nome
+      case 3: // Início do ID
+        console.log("Inicio ID");
         this.showText(INTRO_STEPS[3].text);
         break;
-
-      case 4: // Gênero
+        
+        case 4: // Nome
+        console.log("Nome");
         this.showText(INTRO_STEPS[4].text);
         this.titleText?.destroy();
         break;
-
-      case 5: // Cargo (Apenas a pergunta)
+        
+        case 5: // Gênero
+        console.log("Gênero");
+        this.titleText?.destroy();
+        
+        this.showText(INTRO_STEPS[5].text);
+        break;
+        
+        case 6: // Carreira
+        console.log("Carreira");
         this.faceFrame.hideAll();
         this.genderOptions?.destroy();
         this.characterWithAura.destroy();
         this.titleText?.destroy();
-
-        this.showText(INTRO_STEPS[5].text);
-        break;
-
-      case 6: // "Conexão estabelecida! Gerando sua chave..."
-        this.titleText?.destroy();
         this.showText(INTRO_STEPS[6].text);
         break;
-
-      case 7: // MOSTRAR O CARTÃO + MENSAGEM FINAL
+        
+        case 7: // MOSTRAR O CARTÃO + MENSAGEM FINAL
+        console.log("Cartão final");
         this.game.events.emit("intro-clear-dialog");
 
         this.createPlayerIdCard();
@@ -542,7 +552,7 @@ export class IntroScene extends Scene {
     // Limpa e avança
     this.time.delayedCall(1000, () => {
       this.careerOptions.destroy();
-      this.currentStep = 5;
+      this.currentStep++;
       this.showStep();
     });
   }
@@ -636,7 +646,7 @@ export class IntroScene extends Scene {
           this.game.canvas.focus();
           this.input.manager.enabled = true;
 
-          this.currentStep = 4;
+          this.currentStep++;
           this.showStep();
         });
       },
@@ -731,7 +741,7 @@ export class IntroScene extends Scene {
 
     // Aguarda um momento antes de avançar
     this.time.delayedCall(1000, () => {
-      this.currentStep = 4;
+      this.currentStep++;
       this.showStep();
     });
   }

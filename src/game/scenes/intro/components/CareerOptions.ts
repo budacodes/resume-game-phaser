@@ -237,6 +237,7 @@ export class CareerOptions {
 
     // Eventos de hover
     container.on("pointerover", () => {
+      this.cursorManager.setState("hover");
       const index = this.careers.findIndex(
         (c) => c.id === career.id,
       );

@@ -13,26 +13,31 @@ export const INTRO_STEPS: IntroStep[] = [
   },
   {
     id: 2,
-    text: "Para o sistema te reconhecer, você precisará de uma credencial... irei criar para você. \nAlém disso, vou adicionar um bloco de notas no seu inventário com instruções caso se sinta perdido!",
+    text: "Vou adicionar um bloco de notas no seu inventário com instruções caso se sinta perdido!",
     type: "dialog",
   },
   {
     id: 3,
-    text: "Feito. \nComo você gostaria de assinar sua presença aqui?",
-    type: "name-input",
+    text: "Além disso, para o sistema te reconhecer, você precisará de uma credencial... irei criar agora para você...",
+    type: "dialog",
   },
   {
     id: 4,
+    text: "Como você gostaria de assinar sua presença aqui?",
+    type: "name-input",
+  },
+  {
+    id: 5,
     text: "Certo! E como sua essência se manifesta?",
     type: "gender-select",
   },
   {
-    id: 5,
-    text: "O sistema requer uma especialização para o acesso.\nQual é a sua diretriz profissional?",
+    id: 6,
+    text: "Ótimo! O sistema requer uma especialização para o acesso.\nQual é a sua diretriz profissional?",
     type: "career-select",
   },
   {
-    id: 6,
+    id: 7,
     text: "Conexão estabelecida! Gerando sua chave de acesso neural... Não se mova.",
     type: "idcard-show",
   },
