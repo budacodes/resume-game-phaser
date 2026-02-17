@@ -4,6 +4,7 @@ import { CursorManager } from "../../managers/CursorManager";
 import { CursorManagerAdapter } from "../../infrastructure/adapters/CursorManagerAdapter";
 import { CodeRainBackground } from "./intro/components/CodeRainBackground";
 import { COLORS } from "./ui/Utils";
+import { isMobileDevice } from "../../utils/device";
 
 export class SplashScene extends Scene {
   private cursorManager!: CursorPort;
@@ -14,6 +15,9 @@ export class SplashScene extends Scene {
   }
 
   create() {
+    const mobileDetected = isMobileDevice();
+    this.registry.set("isMobileDevice", mobileDetected);
+
     this.cursorManager = new CursorManagerAdapter(
       CursorManager.getInstance(),
     );
@@ -55,6 +59,23 @@ export class SplashScene extends Scene {
       )
       .setOrigin(0.5);
 
+    if (mobileDetected) {
+      // MENSAGEM TEMP DE MOBILE
+      this.add
+        .text(
+          this.scale.width / 2,
+          this.scale.height / 2 + 120,
+          "(versão mobile indisponível no momento)",
+          {
+            fontFamily: '"VT323"',
+            fontSize: "16px",
+            color: `#${COLORS.gold}`,
+            align: "center",
+          },
+        )
+        .setOrigin(0.5);
+    }
+
     this.codeRainBackground = new CodeRainBackground(this);
     this.codeRainBackground.create();
 
@@ -62,6 +83,12 @@ export class SplashScene extends Scene {
   }
 
   private createMenuButtons() {
+    const isMobile = this.registry.get("isMobileDevice");
+
+    if (isMobile) {
+      return;
+    }
+
     const { width, height } = this.scale;
     const centerX = width / 2;
     const startY = height / 2 + 50;

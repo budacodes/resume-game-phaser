@@ -17,6 +17,10 @@ import { QuestLog } from "./components/QuestLog";
 import { QuestToast } from "./components/QuestToast";
 import { SettingsMenu } from "./components/SettingsMenu";
 import { AudioManager } from "../../../managers/AudioManager";
+import {
+  isMobileUserAgent,
+  isTouchDevice,
+} from "../../../utils/device";
 
 type ActiveUI =
   | "settings"
@@ -39,7 +43,7 @@ export class UIScene extends Scene {
   private inventory!: Inventory;
   private isJoystickEnabled = false;
   private isTouchDevice = false;
-  private isMobileDevice = false;
+  public isMobileDevice = false;
   private mainUIContainer!: Phaser.GameObjects.Container;
   private dialogBox!: DialogBox;
   private currentDialogMode: DialogMode = "read";
@@ -733,12 +737,8 @@ export class UIScene extends Scene {
   }
 
   private detectDeviceType(): void {
-    this.isTouchDevice =
-      "ontouchstart" in window ||
-      navigator.maxTouchPoints > 0;
-    this.isMobileDevice = /android|iphone|ipad|ipod/i.test(
-      navigator.userAgent.toLowerCase(),
-    );
+    this.isTouchDevice = isTouchDevice();
+    this.isMobileDevice = isMobileUserAgent();
   }
 
   private setupJoystickConditionally(): void {
