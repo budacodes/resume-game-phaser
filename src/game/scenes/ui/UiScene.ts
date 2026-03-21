@@ -22,6 +22,8 @@ import { BusinessCard } from "./components/BusinessCard";
 import { QuestLog } from "./components/QuestLog";
 import { QuestToast } from "./components/QuestToast";
 import { SettingsMenu } from "./components/SettingsMenu";
+import { PhaserDialogPresenter } from "../../../infrastructure/adapters/PhaserDialogPresenter";
+import { AudioManagerAdapter } from "../../../infrastructure/adapters/AudioManagerAdapter";
 
 type ActiveUI =
   | "settings"
@@ -130,7 +132,11 @@ export class UIScene extends Scene {
       this.cursorPort,
       this.questQuery,
     );
-    this.inventory = new Inventory(this);
+    this.inventory = new Inventory(
+      this,
+      new PhaserDialogPresenter(this),
+      new AudioManagerAdapter(this.audio),
+    );
 
     this.createSettingsButton();
     this.createQuestLogButton();

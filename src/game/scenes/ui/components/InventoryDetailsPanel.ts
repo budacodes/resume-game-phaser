@@ -15,7 +15,7 @@ interface InventoryDetailsPanelParams {
   panelHeight: number;
   useItemUseCase: UseItemUseCase;
   dropItemConfirmationUseCase: DropItemConfirmationUseCase;
-  onRefresh: () => void;
+  onUseItem: (itemId: string) => void;
 }
 
 export class InventoryDetailsPanel {
@@ -26,7 +26,7 @@ export class InventoryDetailsPanel {
   private readonly panelHeight: number;
   private readonly useItemUseCase: UseItemUseCase;
   private readonly dropItemConfirmationUseCase: DropItemConfirmationUseCase;
-  private readonly onRefresh: () => void;
+  private readonly onUseItem: (itemId: string) => void;
 
   constructor(params: InventoryDetailsPanelParams) {
     this.scene = params.scene;
@@ -37,7 +37,7 @@ export class InventoryDetailsPanel {
     this.useItemUseCase = params.useItemUseCase;
     this.dropItemConfirmationUseCase =
       params.dropItemConfirmationUseCase;
-    this.onRefresh = params.onRefresh;
+    this.onUseItem = params.onUseItem;
   }
 
   createBasePanel(): void {
@@ -113,7 +113,7 @@ export class InventoryDetailsPanel {
         "USAR",
         `${COLORS.green}`,
         () => {
-          this.useItemUseCase.execute(item.id);
+          this.onUseItem(item.id);
         },
       );
     }
@@ -219,7 +219,7 @@ export class InventoryDetailsPanel {
       `${COLORS.red}`,
       () => {
         this.dropItemConfirmationUseCase.confirm(item.id);
-        this.onRefresh();
+        this.onUseItem(item.id);
       },
     );
 

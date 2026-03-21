@@ -1,16 +1,18 @@
 import Phaser from "phaser";
-import { InventoryItem } from "../../../../config/models/InventoryItem";
-import { InventoryItemSprite } from "../../../../entities/ItemSprite";
-import { DropItemConfirmationUseCase } from "../../../../application/usecases/DropItemConfirmationUseCase";
+import { AudioPort } from "../../../../application/ports/AudioPort";
+import { CursorPort } from "../../../../application/ports/CursorPort";
+import { DialogPort } from "../../../../application/ports/DialogPort";
 import { InventoryQueryPort } from "../../../../application/ports/InventoryQueryPort";
+import { DropItemConfirmationUseCase } from "../../../../application/usecases/DropItemConfirmationUseCase";
 import { UseItemUseCase } from "../../../../application/usecases/UseItemUseCase";
 import {
   InventoryComposition,
   InventoryCompositionResult,
 } from "../../../../composition/InventoryComposition";
-import { CursorPort } from "../../../../application/ports/CursorPort";
-import { InventoryDetailsPanel } from "./InventoryDetailsPanel";
+import { InventoryItem } from "../../../../config/models/InventoryItem";
+import { InventoryItemSprite } from "../../../../entities/ItemSprite";
 import { COLORS } from "../Utils";
+import { InventoryDetailsPanel } from "./InventoryDetailsPanel";
 
 export class Inventory {
   private scene: Phaser.Scene;
@@ -42,9 +44,16 @@ export class Inventory {
   private readonly slotPadding = 10;
   private readonly capacity = this.columns * this.rows;
 
-  constructor(scene: Phaser.Scene) {
+  constructor(
+    scene: Phaser.Scene,
+    dialog: DialogPort,
+    audio: AudioPort,
+  ) {
     this.scene = scene;
-    const composition = this.composeDependencies();
+    const composition = this.composeDependencies(
+      dialog,
+      audio,
+    );
     this.cursorManager = composition.cursor;
     this.dropItemConfirmationUseCase =
       composition.dropItemConfirmationUseCase;
@@ -64,17 +73,23 @@ export class Inventory {
       useItemUseCase: this.useItemUseCase,
       dropItemConfirmationUseCase:
         this.dropItemConfirmationUseCase,
-      onRefresh: () => {
-        this.toggle();
-        this.toggle();
+      onUseItem: (itemId: string) => {
+        this.close(); // 🔥 fecha inventário
+
+        this.scene.time.delayedCall(300, () => {
+          this.useItemUseCase.execute(itemId);
+        });
       },
     });
 
     this.create();
   }
 
-  private composeDependencies(): InventoryCompositionResult {
-    return new InventoryComposition().build();
+  private composeDependencies(
+    dialog: DialogPort,
+    audio: AudioPort,
+  ): InventoryCompositionResult {
+    return new InventoryComposition().build(dialog, audio);
   }
 
   public open(): void {

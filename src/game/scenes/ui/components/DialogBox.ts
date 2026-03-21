@@ -350,6 +350,8 @@ export class DialogBox {
     text: string = "",
     opts?: { autoResize?: boolean; animate?: boolean },
   ): void {
+    console.log('dialogbox', text);
+    
     this.stopTyping();
 
     const autoResize = opts?.autoResize ?? true;

@@ -18,8 +18,6 @@ export class CollectItemUseCase {
     itemId: string,
     messages?: CollectItemMessages,
   ): void {
-    console.log(itemId);
-    
     if (this.inventory.hasItem(itemId)) {
       if (messages) {
         this.dialog.show({
@@ -33,7 +31,6 @@ export class CollectItemUseCase {
     }
 
     this.inventory.obtainItem(itemId);
-console.log('passou', itemId);
 
     if (messages) {
       this.dialog.show({

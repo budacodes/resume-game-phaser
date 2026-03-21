@@ -1,3 +1,4 @@
+import { InteractionContextManager } from "../../managers/InteractionContextManager";
 import { DialogPort } from "../ports/DialogPort";
 import { InventoryRepository } from "../ports/InventoryRepository";
 
@@ -7,33 +8,28 @@ export class FountainInteractionUseCase {
     private readonly dialog: DialogPort,
   ) {}
 
-  startInteraction(): boolean {
+  startInteraction(): void {
+    const contextManager =
+      InteractionContextManager.getInstance();
+
     if (this.inventory.hasItem("coin")) {
+      contextManager.setContext({ type: "fountain" });
+
       this.dialog.show({
-        text: "A fonte emite uma aura estranha...\nTalvez a moeda que você tem possa ativá-la?\n\n",
+        text: "A fonte emite uma aura estranha...\nTalvez uma MOEDA possa ser USADA aqui...",
+        hint: "[ ESPAÇO para fechar ]",
         mode: "read",
       });
 
-      return true;
+      return;
     }
+
+    contextManager.clear();
 
     this.dialog.show({
       text: "A fonte emite uma aura estranha...\nParece até pedir algo...",
       hint: "[ ESPAÇO para fechar ]",
       mode: "read",
     });
-    return false;
-  }
-
-  answerYes(): void {
-    this.inventory.removeItem("coin");
-    this.dialog.show({
-      hint: "[ ESPAÇO para fechar ]",
-      text: "Você fez um pedido silencioso...",
-    });
-  }
-
-  answerNo(): void {
-    this.dialog.hide();
   }
 }

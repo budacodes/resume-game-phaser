@@ -33,7 +33,6 @@ export class MainScene extends Scene {
   private interactionPrompt!: Phaser.GameObjects.Sprite;
 
   private isReading: boolean = false;
-  private isQuestionMode: boolean = false;
   private targetSpawn: string = "spawn_start";
   private facingDirection:
     | "up"
@@ -73,7 +72,6 @@ export class MainScene extends Scene {
       },
       onFinished: () => {
         this.isReading = false;
-        this.isQuestionMode = false;
       },
     });
 
@@ -164,18 +162,10 @@ export class MainScene extends Scene {
     )
       return;
 
-    if (this.isQuestionMode) {
-      this.handleFountainQuestionInput();
-      return;
-    }
-
     if (this.isReading) {
       this.player.stopMovement();
     } else {
-      if (this.player) {
-        this.player.update();
-      }
-
+      this.player.update();
       this.handleInteractions();
     }
   }
@@ -392,8 +382,7 @@ export class MainScene extends Scene {
   }
 
   private handleFountainInteraction() {
-    this.isQuestionMode =
-      this.fountainInteractionUseCase.startInteraction();
+    this.fountainInteractionUseCase.startInteraction();
   }
 
   private handleInsanosFlagInteraction(
@@ -431,19 +420,6 @@ export class MainScene extends Scene {
 
     // Nunca mais dispara
     zone.destroy();
-  }
-
-  private handleFountainQuestionInput() {
-    if (this.interactionInput.isYesPressed()) {
-      this.coinSound.play();
-      setTimeout(() => this.waterDropSound.play(), 400);
-
-      this.fountainInteractionUseCase.answerYes();
-    }
-
-    if (this.interactionInput.isNoPressed()) {
-      this.fountainInteractionUseCase.answerNo();
-    }
   }
 
   private getTiledProperty(
