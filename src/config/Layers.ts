@@ -42,6 +42,6 @@ export const LAYER_CONFIG: Record<
   Rugs: { depth: DEPTH.LOW_OBJ, collides: false },
   Walls: { depth: DEPTH.WALLS, collides: true },
   Furniture: { depth: DEPTH.WALLS, collides: true }, // Estantes, mesas
-  Furniture_Top: { depth: DEPTH.HIGH_OBJ, collides: false }, // Parte de cima da estante
+  Furniture_Top: { depth: DEPTH.MID_OBJ, collides: false }, // Parte de cima da estante
   Decorations: { depth: DEPTH.MID_OBJ, collides: true },
 };

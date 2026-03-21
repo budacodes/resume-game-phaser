@@ -1,26 +1,27 @@
 // scenes/UIScene.ts
 import { Scene } from "phaser";
 import VirtualJoystick from "phaser3-rex-plugins/plugins/virtualjoystick.js";
+import { CursorPort } from "../../../application/ports/CursorPort";
+import { QuestQueryPort } from "../../../application/ports/QuestQueryPort";
+import { SettingsPort } from "../../../application/ports/SettingsPort";
+import { UISceneComposition } from "../../../composition/UISceneComposition";
 import { DialogPayload } from "../../../config/models/DialogPayload";
 import { DialogMode } from "../../../config/types/DialogTypes";
-import { CursorManager } from "../../../managers/CursorManager";
-import { CursorPort } from "../../../application/ports/CursorPort";
-import { SettingsPort } from "../../../application/ports/SettingsPort";
-import { QuestQueryPort } from "../../../application/ports/QuestQueryPort";
-import { UISceneComposition } from "../../../composition/UISceneComposition";
-import { SettingsManager } from "../../../managers/SettingsManager";
-import { AudioSystem } from "../intro/systems/AudioSystem";
-import { TextTyper } from "../intro/systems/TextTyper";
-import { DialogBox } from "./components/DialogBox";
-import { Inventory } from "./components/Inventory";
-import { QuestLog } from "./components/QuestLog";
-import { QuestToast } from "./components/QuestToast";
-import { SettingsMenu } from "./components/SettingsMenu";
 import { AudioManager } from "../../../managers/AudioManager";
+import { CursorManager } from "../../../managers/CursorManager";
+import { SettingsManager } from "../../../managers/SettingsManager";
 import {
   isMobileUserAgent,
   isTouchDevice,
 } from "../../../utils/device";
+import { AudioSystem } from "../intro/systems/AudioSystem";
+import { TextTyper } from "../intro/systems/TextTyper";
+import { DialogBox } from "./components/DialogBox";
+import { Inventory } from "./components/Inventory";
+import { BusinessCard } from "./components/BusinessCard";
+import { QuestLog } from "./components/QuestLog";
+import { QuestToast } from "./components/QuestToast";
+import { SettingsMenu } from "./components/SettingsMenu";
 
 type ActiveUI =
   | "settings"
@@ -47,6 +48,7 @@ export class UIScene extends Scene {
   private mainUIContainer!: Phaser.GameObjects.Container;
   private dialogBox!: DialogBox;
   private currentDialogMode: DialogMode = "read";
+  private externalModal!: BusinessCard;
 
   // Novos campos para gerenciar diálogos da IntroScene
   private textTyper!: TextTyper;
@@ -196,6 +198,8 @@ export class UIScene extends Scene {
       },
     );
 
+    this.externalModal = new BusinessCard(this);
+
     // 8. INICIALIZAÇÃO DO DIALOGBOX E SISTEMAS
     this.initializeDialogSystem();
 
@@ -217,6 +221,10 @@ export class UIScene extends Scene {
       if (this.shouldShowInGameButtons()) {
         this.toggleUI("questlog");
       }
+    });
+
+    this.game.events.on("open-business-card", () => {
+      this.externalModal.show();
     });
   }
 
@@ -335,7 +343,9 @@ export class UIScene extends Scene {
         const hint = this.formatHint(payload.hint ?? null);
         this.dialogBox.setHint(hint, { reflow: false });
         this.dialogBox.prepareLayoutFor(payload.text, hint);
-        this.dialogBox.show(payload.text, { autoResize: false });
+        this.dialogBox.show(payload.text, {
+          autoResize: false,
+        });
       },
     );
 
@@ -460,9 +470,7 @@ export class UIScene extends Scene {
     }
   }
 
-  private formatHint(
-    hint: string | null,
-  ): string | null {
+  private formatHint(hint: string | null): string | null {
     if (!hint) return hint;
     if (this.isTouchDevice || this.isMobileDevice) {
       return hint.replace(/ESPAÇO/gi, "TOQUE");

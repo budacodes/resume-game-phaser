@@ -1,14 +1,15 @@
 import { Scene } from "phaser";
-import { Player } from "../../entities/Player";
 import { MapPort } from "../../application/ports/MapPort";
+import { ShowDialogUseCase } from "../../application/usecases/ShowDialogUseCase";
+import { WarpUseCase } from "../../application/usecases/WarpUseCase";
+import { InteriorSceneComposition } from "../../composition/InteriorSceneComposition";
+import { Player } from "../../entities/Player";
+import { PhaserDialogEventAdapter } from "../../infrastructure/adapters/PhaserDialogEventAdapter";
+import { PhaserInteractionInput } from "../../infrastructure/adapters/PhaserInteractionInput";
+import { PhaserTimeScheduler } from "../../infrastructure/adapters/PhaserTimeScheduler";
+import { BusinessCard } from "./ui/components/BusinessCard";
 import { UIScene } from "./ui/UiScene";
 import { COLORS } from "./ui/Utils";
-import { PhaserInteractionInput } from "../../infrastructure/adapters/PhaserInteractionInput";
-import { PhaserDialogEventAdapter } from "../../infrastructure/adapters/PhaserDialogEventAdapter";
-import { PhaserTimeScheduler } from "../../infrastructure/adapters/PhaserTimeScheduler";
-import { ShowDialogUseCase } from "../../application/usecases/ShowDialogUseCase";
-import { InteriorSceneComposition } from "../../composition/InteriorSceneComposition";
-import { WarpUseCase } from "../../application/usecases/WarpUseCase";
 
 export class InteriorScene extends Scene {
   // --- SISTEMAS ---
@@ -43,6 +44,8 @@ export class InteriorScene extends Scene {
   private showDialogUseCase!: ShowDialogUseCase;
   private warpUseCase!: WarpUseCase;
 
+  private externalModal!: BusinessCard;
+
   constructor() {
     super("InteriorScene");
   }
@@ -66,6 +69,8 @@ export class InteriorScene extends Scene {
 
     this.game.events.emit("scene-changed", "InteriorScene");
     this.game.events.emit("enable-joystick");
+
+    this.externalModal = new BusinessCard(this);
 
     // 2. RECUPERA A UI
     if (this.scene.isActive("UIScene")) {
@@ -91,7 +96,8 @@ export class InteriorScene extends Scene {
         this.startInteractionCooldown();
       },
     });
-    this.dialogEventAdapter = composition.dialogEventAdapter;
+    this.dialogEventAdapter =
+      composition.dialogEventAdapter;
     this.interactionInput = composition.interactionInput;
     this.timeScheduler = composition.timeScheduler;
     this.showDialogUseCase = composition.showDialogUseCase;
@@ -126,7 +132,8 @@ export class InteriorScene extends Scene {
 
     // 5. CÂMERA
     const mapSize = this.mapPort.getMapSize();
-    const mapWidth = mapSize?.widthInPixels ?? this.scale.width;
+    const mapWidth =
+      mapSize?.widthInPixels ?? this.scale.width;
     const mapHeight =
       mapSize?.heightInPixels ?? this.scale.height;
 
@@ -213,9 +220,6 @@ export class InteriorScene extends Scene {
       (obj) => obj.name === "NPC_Ada",
     );
 
-    console.log(adaObj);
-    
-
     if (adaObj) {
       const x = adaObj.x || 0;
       const y = adaObj.y || 0;
@@ -224,6 +228,21 @@ export class InteriorScene extends Scene {
 
       ada.setOrigin(0.5, 1);
       ada.setDepth(10);
+    }
+
+    const budaObj = npcObjects.find(
+      (obj) => obj.name === "NPC_Buda",
+    );
+
+    if (budaObj) {
+      const x = budaObj.x || 0;
+      const y = budaObj.y || 0;
+
+      const buda = this.npcs.create(x, y, "buda-idle");
+
+      buda.setScale(0.05);
+      buda.setOrigin(0.5, 1);
+      buda.setDepth(10);
     }
   }
 
@@ -315,11 +334,14 @@ export class InteriorScene extends Scene {
       case "npc_ada":
         this.handleAdaInteraction();
         break;
-      case "npc_buda":
+      case "buda-idle":
         this.handleBudaInteraction();
         break;
       case "warp":
         this.handleWarpAction(data);
+        break;
+      case "external":
+        this.handleExternalAction(data);
         break;
       default:
         console.warn(
@@ -412,6 +434,20 @@ export class InteriorScene extends Scene {
       msg,
       "[ ESPAÇO para fechar ]",
     );
+  }
+
+  private handleExternalAction(data: any) {
+    const url =
+      this.getTiledProperty(data, "url") ||
+      "https://www.linkedin.com/in/budacodes";
+
+    const message =
+      this.getTiledProperty(data, "message") || "";
+
+    this.game.events.emit("open-business-card", {
+      message: message,
+      url,
+    });
   }
 
   // REMOVIDO: handleDialogInput() - Não é mais necessário

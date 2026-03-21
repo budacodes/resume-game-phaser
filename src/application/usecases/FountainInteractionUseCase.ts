@@ -10,9 +10,10 @@ export class FountainInteractionUseCase {
   startInteraction(): boolean {
     if (this.inventory.hasItem("coin")) {
       this.dialog.show({
-        text: "A fonte emite uma aura estranha...\nDeseja jogar uma moeda?\n\n[Y] Sim [N] Não",
-        mode: "question",
+        text: "A fonte emite uma aura estranha...\nTalvez a moeda que você tem possa ativá-la?\n\n",
+        mode: "read",
       });
+
       return true;
     }
 

@@ -1,10 +1,10 @@
 import { Scene } from "phaser";
 import { CursorPort } from "../../application/ports/CursorPort";
-import { CursorManager } from "../../managers/CursorManager";
 import { CursorManagerAdapter } from "../../infrastructure/adapters/CursorManagerAdapter";
+import { CursorManager } from "../../managers/CursorManager";
+import { isMobileDevice } from "../../utils/device";
 import { CodeRainBackground } from "./intro/components/CodeRainBackground";
 import { COLORS } from "./ui/Utils";
-import { isMobileDevice } from "../../utils/device";
 
 export class SplashScene extends Scene {
   private cursorManager!: CursorPort;

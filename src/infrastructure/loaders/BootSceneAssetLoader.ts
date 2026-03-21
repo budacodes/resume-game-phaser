@@ -31,6 +31,31 @@ export class BootSceneAssetLoader {
 
   preloadImages(): void {
     this.scene.load.image(
+      "whatsapp",
+      "assets/ui/whatsapp.png",
+    );
+
+    this.scene.load.image(
+      "instagram",
+      "assets/ui/instagram.png",
+    );
+
+    this.scene.load.image(
+      "linkedin",
+      "assets/ui/linkedin.png",
+    );
+
+    this.scene.load.image(
+      "github",
+      "assets/ui/github.png",
+    );
+
+    this.scene.load.image(
+      "profile",
+      "assets/images/profile.jpeg",
+    );
+
+    this.scene.load.image(
       "male-face",
       "assets/sprites/faces/male-face.png",
     );
