@@ -1,5 +1,6 @@
 import { Scene } from "phaser";
 import { CursorPort } from "../../application/ports/CursorPort";
+import { LoadPlayerState } from "../../application/services/LoadPlayerState";
 import { CursorManagerAdapter } from "../../infrastructure/adapters/CursorManagerAdapter";
 import { CursorManager } from "../../managers/CursorManager";
 import { isMobileDevice } from "../../utils/device";
@@ -118,6 +119,7 @@ export class SplashScene extends Scene {
       !!hasSave,
       () => {
         if (hasSave) {
+          LoadPlayerState.execute();
           this.scene.start("MainScene");
         } else {
           return null;

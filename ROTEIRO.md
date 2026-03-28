@@ -1,6 +1,7 @@
 # DÉBITOS TÉCNICOS
 
 - [ ] adicionar quests reais com a implementação da finalização delas
+- [x] ajustar texto e ícone nos detalhes do cartão de acesso
 - [x] adicionar sprite do buda
 - [x] corrigir a aura dos personagens na seleção de genero
 - [x] verificar erro ao voltar da interior para a main scene
@@ -13,9 +14,9 @@
 
 # IDEIAS
 
+- [x] adicionar o crachá gerado no inventário
 - [ ] mudar a interação da porta para que, do mesmo modo, seja necessário usar o cartão de acesso e não só interagir com a porta
 - [ ] adicionar movimento aos carros
-- [ ] adicionar o crachá gerado no inventário
 - [ ] adicionar no computador a interatividade para abrir meu livro
 - [ ] adicionar no computador a interatividade para abrir algum projeto
 - [ ] adicionar na mesa a interatividade para abrir meu curriculo

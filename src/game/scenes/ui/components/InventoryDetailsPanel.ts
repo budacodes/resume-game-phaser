@@ -1,10 +1,12 @@
 import Phaser from "phaser";
 import BBCodeText from "phaser3-rex-plugins/plugins/bbcodetext";
-import { InventoryItem } from "../../../../config/models/InventoryItem";
-import { InventoryItemSprite } from "../../../../entities/ItemSprite";
+import { CursorPort } from "../../../../application/ports/CursorPort";
 import { DropItemConfirmationUseCase } from "../../../../application/usecases/DropItemConfirmationUseCase";
 import { UseItemUseCase } from "../../../../application/usecases/UseItemUseCase";
-import { CursorPort } from "../../../../application/ports/CursorPort";
+import { InventoryItem } from "../../../../config/models/InventoryItem";
+import { IdCard } from "../../../../entities/IdCard";
+import { InventoryItemSprite } from "../../../../entities/InventoryItemSprite";
+import { PlayerIdentityManager } from "../../../../managers/PlayerIdentityManager";
 import { COLORS } from "../Utils";
 
 interface InventoryDetailsPanelParams {
@@ -56,6 +58,12 @@ export class InventoryDetailsPanel {
 
     const panelX = this.panelWidth / 2 - 150;
 
+    // 👇 INTERCEPTA O KEYCARD
+    if (item.id === "keycard") {
+      this.renderKeycardDetails(panelX, item);
+      return;
+    }
+
     const icon = new InventoryItemSprite(
       this.scene,
       panelX,
@@ -65,7 +73,7 @@ export class InventoryDetailsPanel {
       .setOrigin(0.5)
       .setInteractive();
 
-    icon.show(panelX, -140, 4);
+    icon.show(panelX, -140, 5);
     icon.name = "details";
 
     const name = new BBCodeText(
@@ -131,6 +139,96 @@ export class InventoryDetailsPanel {
     }
 
     this.container.add([icon, name, desc]);
+  }
+
+  private renderKeycardDetails(panelX: number, item: InventoryItem): void {
+    const data =
+      PlayerIdentityManager.getInstance().getIdCard();
+
+    if (!data) return;
+
+    // 🔥 aqui entra seu IdCard real
+    const card = new IdCard(
+      this.scene,
+      panelX,
+      -104,
+      data,
+    ).setScale(0.6);
+
+    card.name = "details";
+
+    // opcional: animação de entrada
+    // card.setAlpha(0);
+    // this.scene.tweens.add({
+    //   targets: card,
+    //   alpha: 1,
+    //   y: "+=10",
+    //   duration: 300,
+    // });
+
+    const name = new BBCodeText(
+      this.scene,
+      panelX,
+      0,
+      item.name,
+      {
+        fontFamily: "'VT323'",
+        fontSize: "36px",
+        color: `#${COLORS.gold}`,
+      },
+    ).setOrigin(0.5);
+    name.name = "details";
+
+    const desc = new BBCodeText(
+      this.scene,
+      panelX - 150,
+      48,
+      item.description,
+      {
+        fontFamily: "'VT323'",
+        fontSize: "24px",
+        color: "#cccccc",
+        wrap: { width: 300 },
+      },
+    ).setOrigin(0, 0);
+    desc.name = "details";
+
+    const detailBox = this.scene.add.rectangle(
+      panelX,
+      0,
+      340,
+      this.panelHeight,
+      0x222222,
+      0.3,
+    );
+    detailBox.name = "details";
+    this.container.add(detailBox);
+
+    if (item.canBeUsed) {
+      this.createActionButton(
+        panelX - 90,
+        160,
+        "USAR",
+        `${COLORS.green}`,
+        () => {
+          this.onUseItem(item.id);
+        },
+      );
+    }
+
+    if (item.canBeDropped) {
+      this.createActionButton(
+        panelX + 70,
+        160,
+        "DESCARTAR",
+        `${COLORS.red}`,
+        () => {
+          this.showDropConfirmation(item);
+        },
+      );
+    }
+
+    this.container.add([card, name, desc]);
   }
 
   showEmpty(): void {

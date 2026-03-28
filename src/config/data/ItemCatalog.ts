@@ -27,8 +27,7 @@ export const ITEM_CATALOG: Record<string, InventoryItem> = {
     obtained: false,
     canBeUsed: true,
     canBeDropped: false,
-    iconTexture: "npc-ada-run",
-    iconFrame: 5,
+    isDynamic: true,
   },
   issiPin: {
     id: "issi_pin",

@@ -18,4 +18,5 @@ export interface InventoryItem {
   iconFrame?: number;
   iconTexture?: string;
   animation?: ItemAnimationConfig;
+  isDynamic?: boolean;
 }

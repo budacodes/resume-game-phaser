@@ -58,11 +58,11 @@ export class IdCard extends Phaser.GameObjects.Container {
     this.createNameText(config.name);
 
     // 4. TEXTO - CARGO
-    this.createRoleText(
-      CareerOptions.prototype
-        .getCareerOptions()
-        .find((career) => career.id === config.role!).title,
-    );
+    const career = CareerOptions.prototype
+      .getCareerOptions()
+      .find((career) => career.id === config.role);
+
+    this.createRoleText(career?.title ?? "DESCONHECIDO");
 
     // 5. TEXTO - ID
     this.createIdText();

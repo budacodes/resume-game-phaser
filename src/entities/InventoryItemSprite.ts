@@ -10,14 +10,54 @@ export class InventoryItemSprite
     y: number,
     item: InventoryItem,
   ) {
-    super(scene, x, y, item.iconTexture, item.iconFrame);
+    const texture =
+      item.id === "keycard"
+        ? InventoryItemSprite.createKeycardTexture(scene)
+        : item.iconTexture;
+
+    const frame =
+      item.id === "keycard" ? undefined : item.iconFrame;
+
+    super(scene, x, y, texture, frame);
 
     scene.add.existing(this);
 
-    if (item.animation) {
+    // animação só para itens normais
+    if (item.id !== "keycard" && item.animation) {
       this.createAnimation(item.animation);
       this.play(item.animation.animationKey);
     }
+  }
+
+  private static createKeycardTexture(
+    scene: Phaser.Scene,
+  ): string {
+    const key = "keycard-icon";
+
+    if (scene.textures.exists(key)) return key;
+
+    const g = scene.add.graphics();
+
+    // fundo do cartão
+    g.fillStyle(0x1a1a2e, 1);
+    g.fillRoundedRect(0, 0, 24, 16, 2);
+
+    // faixa superior
+    g.fillStyle(0x00ffcc, 1);
+    g.fillRect(0, 0, 24, 5);
+
+    // "chip"
+    g.fillStyle(0xffd700, 1);
+    g.fillRect(22, 10, 6, 4);
+
+    // linha decorativa
+    g.fillStyle(0xffffff, 0.6);
+    g.fillRect(4, 10, 12, 2);
+
+    g.generateTexture(key, 24, 16);
+    g.destroy();
+
+    return key;
   }
 
   private createAnimation(

@@ -10,7 +10,7 @@ import {
   InventoryCompositionResult,
 } from "../../../../composition/InventoryComposition";
 import { InventoryItem } from "../../../../config/models/InventoryItem";
-import { InventoryItemSprite } from "../../../../entities/ItemSprite";
+import { InventoryItemSprite } from "../../../../entities/InventoryItemSprite";
 import { COLORS } from "../Utils";
 import { InventoryDetailsPanel } from "./InventoryDetailsPanel";
 
@@ -280,14 +280,6 @@ export class Inventory {
         y + this.slotSize / 2,
         2,
       );
-
-      // const icon = new CoinFlip(
-      //   this.scene,
-      //   x + this.slotSize / 2,
-      //   y + this.slotSize / 2,
-      //   "coin_flip",
-      // )
-      //   .setScale(2)
 
       icon.on("pointerover", () => {
         this.cursorManager.setState("hover");

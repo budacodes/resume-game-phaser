@@ -340,9 +340,6 @@ export class InteriorScene extends Scene {
       case "warp":
         this.handleWarpAction(data);
         break;
-      case "external":
-        this.handleExternalAction(data);
-        break;
       default:
         console.warn(
           `Ação desconhecida para o tipo: ${type}`,
@@ -435,22 +432,6 @@ export class InteriorScene extends Scene {
       "[ ESPAÇO para fechar ]",
     );
   }
-
-  private handleExternalAction(data: any) {
-    const url =
-      this.getTiledProperty(data, "url") ||
-      "https://www.linkedin.com/in/budacodes";
-
-    const message =
-      this.getTiledProperty(data, "message") || "";
-
-    this.game.events.emit("open-business-card", {
-      message: message,
-      url,
-    });
-  }
-
-  // REMOVIDO: handleDialogInput() - Não é mais necessário
 
   // =================================================================
   // HELPERS VISUAIS

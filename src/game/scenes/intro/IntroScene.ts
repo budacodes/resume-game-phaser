@@ -1,10 +1,21 @@
 // scenes/IntroScene.ts
 import { Scene } from "phaser";
+import { CursorPort } from "../../../application/ports/CursorPort";
+import { SettingsPort } from "../../../application/ports/SettingsPort";
+import { PlayerSetup } from "../../../application/services/PlayerSetup";
+import { CollectItemUseCase } from "../../../application/usecases/CollectItemUseCase";
+import { IntroSceneComposition } from "../../../composition/IntroSceneComposition";
+import {
+  PlayerCareer,
+  PlayerGender,
+} from "../../../config/types/IntroTypes";
+import { BudaDog } from "../../../entities/BudaDog";
 import {
   IdCard,
   IdCardData,
 } from "../../../entities/IdCard";
 import { Planet } from "../../../entities/Planet";
+import { AudioManagerAdapter } from "../../../infrastructure/adapters/AudioManagerAdapter";
 import { AudioManager } from "../../../managers/AudioManager";
 import { TextManager } from "../../../managers/TextManager";
 import { SettingsMenu } from "../ui/components/SettingsMenu";
@@ -18,16 +29,6 @@ import { INTRO_CONFIG } from "./config/IntroConfig";
 import { INTRO_STEPS } from "./config/IntroSteps";
 import { AudioSystem } from "./systems/AudioSystem";
 import { InputSystem } from "./systems/InputSystem";
-import {
-  PlayerCareer,
-  PlayerGender,
-} from "../../../config/types/IntroTypes";
-import { BudaDog } from "../../../entities/BudaDog";
-import { CursorPort } from "../../../application/ports/CursorPort";
-import { SettingsPort } from "../../../application/ports/SettingsPort";
-import { AudioManagerAdapter } from "../../../infrastructure/adapters/AudioManagerAdapter";
-import { IntroSceneComposition } from "../../../composition/IntroSceneComposition";
-import { CollectItemUseCase } from "../../../application/usecases/CollectItemUseCase";
 
 export class IntroScene extends Scene {
   private currentStep = 0;
@@ -452,21 +453,21 @@ export class IntroScene extends Scene {
         console.log("Inicio ID");
         this.showText(INTRO_STEPS[3].text);
         break;
-        
-        case 4: // Nome
+
+      case 4: // Nome
         console.log("Nome");
         this.showText(INTRO_STEPS[4].text);
         this.titleText?.destroy();
         break;
-        
-        case 5: // Gênero
+
+      case 5: // Gênero
         console.log("Gênero");
         this.titleText?.destroy();
-        
+
         this.showText(INTRO_STEPS[5].text);
         break;
-        
-        case 6: // Carreira
+
+      case 6: // Carreira
         console.log("Carreira");
         this.faceFrame.hideAll();
         this.genderOptions?.destroy();
@@ -474,8 +475,8 @@ export class IntroScene extends Scene {
         this.titleText?.destroy();
         this.showText(INTRO_STEPS[6].text);
         break;
-        
-        case 7: // MOSTRAR O CARTÃO + MENSAGEM FINAL
+
+      case 7: // MOSTRAR O CARTÃO + MENSAGEM FINAL
         console.log("Cartão final");
         this.game.events.emit("intro-clear-dialog");
 
@@ -536,7 +537,7 @@ export class IntroScene extends Scene {
     this.registry.set("playerCareer", this.playerCareer);
     localStorage.setItem(
       "player_career",
-      JSON.stringify(this.playerCareer),
+      this.playerCareer,
     );
 
     this.audioManager.playSFX("snd_confirm");
@@ -564,7 +565,10 @@ export class IntroScene extends Scene {
       gender: this.playerGender,
       faceTexture: faceTexture,
       role: this.playerCareer,
+      accessLevel: "BÁSICO",
     };
+
+    localStorage.setItem("player_access", "BÁSICO");
 
     const x = this.scale.width / 2;
     const y = this.scale.height / 2;
@@ -575,6 +579,20 @@ export class IntroScene extends Scene {
 
     this.time.delayedCall(1000, () => {
       this.idCard.playValidationEffect();
+    });
+
+    const idNumber = `ID-${Math.floor(
+      100000 + Math.random() * 900000,
+    )}`;
+    localStorage.setItem("player_id", idNumber);
+
+    PlayerSetup.createPlayer({
+      name: this.playerName,
+      gender: this.playerGender,
+      faceTexture: faceTexture,
+      role: this.playerCareer!,
+      accessLevel: "Nível 3",
+      idNumber,
     });
   }
 
@@ -629,7 +647,7 @@ export class IntroScene extends Scene {
         this.registry.set("playerName", this.playerName);
         localStorage.setItem(
           "player_name",
-          JSON.stringify(this.playerName),
+          this.playerName,
         );
 
         this.codeRainBackground.createMatrixEffect(
@@ -722,7 +740,7 @@ export class IntroScene extends Scene {
     this.registry.set("playerGender", this.playerGender);
     localStorage.setItem(
       "player_gender",
-      JSON.stringify(this.playerGender),
+      this.playerGender,
     );
 
     this.genderOptions?.highlightSelected(gender);
