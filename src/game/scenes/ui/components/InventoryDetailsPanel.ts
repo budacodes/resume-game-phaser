@@ -92,7 +92,7 @@ export class InventoryDetailsPanel {
     const desc = new BBCodeText(
       this.scene,
       panelX - 150,
-      0,
+      -16,
       item.description,
       {
         fontFamily: "'VT323'",
@@ -182,7 +182,7 @@ export class InventoryDetailsPanel {
     const desc = new BBCodeText(
       this.scene,
       panelX - 150,
-      48,
+      32,
       item.description,
       {
         fontFamily: "'VT323'",

@@ -25,6 +25,8 @@ export class LoadPlayerState {
 
     // 🔥 garante item no inventário
     InventoryManager.getInstance().obtainItem("keycard");
-    InventoryManager.getInstance().obtainItem("coin");
+    InventoryManager.getInstance().obtainItem(
+      "survival-guide",
+    );
   }
 }

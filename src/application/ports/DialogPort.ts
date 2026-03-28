@@ -9,4 +9,5 @@ export interface DialogData {
 export interface DialogPort {
   show(dialog: DialogData): void;
   hide(): void;
+  openSurvivalGuide(): void;
 }

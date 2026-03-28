@@ -1,5 +1,8 @@
 import Phaser from "phaser";
-import { DialogData, DialogPort } from "../../application/ports/DialogPort";
+import {
+  DialogData,
+  DialogPort,
+} from "../../application/ports/DialogPort";
 
 export class PhaserDialogPresenter implements DialogPort {
   constructor(private readonly scene: Phaser.Scene) {}
@@ -10,5 +13,9 @@ export class PhaserDialogPresenter implements DialogPort {
 
   hide(): void {
     this.scene.game.events.emit("hide-dialog");
+  }
+
+  openSurvivalGuide(): void {
+    this.scene.events.emit("open-survival-guide");
   }
 }

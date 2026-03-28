@@ -16,6 +16,11 @@ export class UseItemUseCase {
 
     if (!this.inventory.hasItem(itemId)) return;
 
+    if (itemId === "survival-guide") {
+      this.dialog.openSurvivalGuide();
+      return;
+    }
+
     if (itemId === "coin" && context.type === "fountain") {
       this.inventory.removeItem("coin");
 
