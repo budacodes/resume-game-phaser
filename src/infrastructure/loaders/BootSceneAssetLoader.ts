@@ -246,6 +246,15 @@ export class BootSceneAssetLoader {
         frameHeight: 16,
       },
     );
+    
+    this.scene.load.spritesheet(
+      "guide",
+      "assets/sprites/guide.png",
+      {
+        frameWidth: 23,
+        frameHeight: 16,
+      },
+    );
 
     this.scene.load.spritesheet(
       "career_icons",

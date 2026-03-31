@@ -24,6 +24,7 @@ import { QuestToast } from "./components/QuestToast";
 import { SettingsMenu } from "./components/SettingsMenu";
 import { PhaserDialogPresenter } from "../../../infrastructure/adapters/PhaserDialogPresenter";
 import { AudioManagerAdapter } from "../../../infrastructure/adapters/AudioManagerAdapter";
+import { SurvivalGuideModal } from './components/SurvivalGuideModal';
 
 type ActiveUI =
   | "settings"
@@ -117,6 +118,13 @@ export class UIScene extends Scene {
       this.settingsButton.setVisible(true);
       this.questLogButton.setVisible(true);
       this.inventoryButton.setVisible(true);
+    });
+
+    let guideModal: SurvivalGuideModal | null = null;
+    this.events.on("open-survival-guide", () => {
+      if (guideModal) return;
+
+      guideModal = new SurvivalGuideModal(this);
     });
 
     this.setupJoystickConditionally();
@@ -501,7 +509,7 @@ export class UIScene extends Scene {
     }
 
     if (this.questLogButton) {
-      this.questLogButton.setPosition(rightEdge - 100, 40);
+      this.questLogButton.setPosition(rightEdge - 95, 40);
     }
 
     if (this.inventoryButton) {
@@ -644,28 +652,64 @@ export class UIScene extends Scene {
 
     this.settingsButton = this.add
       .sprite(x, y, "settings")
-      .setScale(0.075)
+      .setScale(0.2)
       .setInteractive({ useHandCursor: false });
 
     this.settingsButton.on("pointerover", () => {
       cursorManager.setState("pointer");
       this.game.events.emit("ui:hover-start");
-      this.settingsButton.setScale(0.1);
+      this.settingsButton.setScale(0.25);
     });
 
     this.settingsButton.on("pointerout", () => {
       cursorManager.setState("default");
       this.game.events.emit("ui:hover-end");
-      this.settingsButton.setScale(0.075);
+      this.settingsButton.setScale(0.2);
     });
 
     this.settingsButton.on("pointerdown", () => {
-      this.settingsButton.setScale(0.065);
+      this.settingsButton.setScale(0.23);
       this.toggleUI("settings");
 
       this.time.delayedCall(100, () => {
-        this.settingsButton.setScale(0.075);
+        this.settingsButton.setScale(0.2);
       });
+    });
+  }
+
+  private createQuestLogButton() {
+    const cursorManager = this.cursorManager;
+    const x = this.scale.width - 60;
+    const y = 40;
+
+    this.questLogButton = this.add
+      .sprite(x, y, "questlog")
+      .setScale(0.2)
+      .setInteractive({ useHandCursor: false });
+
+    this.questLogButton.on("pointerover", () => {
+      cursorManager.setState("pointer");
+      this.game.events.emit("ui:hover-start");
+      this.questLogButton.setScale(0.25);
+    });
+
+    this.questLogButton.on("pointerout", () => {
+      cursorManager.setState("default");
+      this.game.events.emit("ui:hover-end");
+      this.questLogButton.setScale(0.2);
+    });
+
+    this.questLogButton.on("pointerdown", () => {
+      this.questLogButton.setScale(0.23);
+      this.toggleUI("questlog");
+
+      this.time.delayedCall(100, () => {
+        this.questLogButton.setScale(0.2);
+      });
+
+      this.questLogButton.setVisible(
+        this.shouldShowInGameButtons(),
+      );
     });
   }
 
@@ -676,27 +720,27 @@ export class UIScene extends Scene {
 
     this.inventoryButton = this.add
       .sprite(x, y, "inventory")
-      .setScale(0.075)
+      .setScale(0.2)
       .setInteractive({ useHandCursor: false });
 
     this.inventoryButton.on("pointerover", () => {
       cursorManager.setState("pointer");
       this.game.events.emit("ui:hover-start");
-      this.inventoryButton.setScale(0.1);
+      this.inventoryButton.setScale(0.25);
     });
 
     this.inventoryButton.on("pointerout", () => {
       cursorManager.setState("default");
       this.game.events.emit("ui:hover-end");
-      this.inventoryButton.setScale(0.075);
+      this.inventoryButton.setScale(0.2);
     });
 
     this.inventoryButton.on("pointerdown", () => {
-      this.inventoryButton.setScale(0.065);
+      this.inventoryButton.setScale(0.23);
       this.toggleUI("inventory");
 
       this.time.delayedCall(100, () => {
-        this.inventoryButton.setScale(0.075);
+        this.inventoryButton.setScale(0.2);
       });
 
       this.inventoryButton.setVisible(
@@ -712,42 +756,6 @@ export class UIScene extends Scene {
       sceneManager.isActive("SplashScene");
 
     return !isIntroActive;
-  }
-
-  private createQuestLogButton() {
-    const cursorManager = this.cursorManager;
-    const x = this.scale.width - 60;
-    const y = 40;
-
-    this.questLogButton = this.add
-      .sprite(x, y, "questlog")
-      .setScale(0.075)
-      .setInteractive({ useHandCursor: false });
-
-    this.questLogButton.on("pointerover", () => {
-      cursorManager.setState("pointer");
-      this.game.events.emit("ui:hover-start");
-      this.questLogButton.setScale(0.1);
-    });
-
-    this.questLogButton.on("pointerout", () => {
-      cursorManager.setState("default");
-      this.game.events.emit("ui:hover-end");
-      this.questLogButton.setScale(0.075);
-    });
-
-    this.questLogButton.on("pointerdown", () => {
-      this.questLogButton.setScale(0.065);
-      this.toggleUI("questlog");
-
-      this.time.delayedCall(100, () => {
-        this.questLogButton.setScale(0.075);
-      });
-
-      this.questLogButton.setVisible(
-        this.shouldShowInGameButtons(),
-      );
-    });
   }
 
   private detectDeviceType(): void {

@@ -10,7 +10,7 @@ export const ITEM_CATALOG: Record<string, InventoryItem> = {
     canBeUsed: true,
     canBeDropped: false,
     iconFrame: 0,
-    iconTexture: "issi_pin",
+    iconTexture: "guide",
   },
   keycard: {
     id: "keycard",
