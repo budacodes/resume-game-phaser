@@ -13,6 +13,7 @@ import { AudioPort } from "../../application/ports/AudioPort";
 import { MainSceneComposition } from "../../composition/MainSceneComposition";
 import { MapPort } from "../../application/ports/MapPort";
 import { CursorPort } from "../../application/ports/CursorPort";
+import { Car } from "../../entities/Car";
 
 export class MainScene extends Scene {
   private player!: Player;
@@ -51,6 +52,9 @@ export class MainScene extends Scene {
 
   private audio!: AudioPort;
 
+  private cars: Car[] = [];
+  private roadLayer!: Phaser.Tilemaps.TilemapLayer;
+
   constructor() {
     super("MainScene");
   }
@@ -77,6 +81,13 @@ export class MainScene extends Scene {
 
     this.mapPort = composition.mapPort;
     this.mapPort.init("hub");
+
+    this.roadLayer = this.children.list.find(
+      (obj) =>
+        obj instanceof Phaser.Tilemaps.TilemapLayer &&
+        obj.layer.name === "Road",
+    ) as Phaser.Tilemaps.TilemapLayer;
+
     this.cursor = composition.cursor;
 
     this.audio = composition.audio;
@@ -106,11 +117,54 @@ export class MainScene extends Scene {
       this.createInteractionZones();
       this.initAudioAndInputs();
       this.isPlayerReady = true;
+
+      this.createCars();
     });
 
     this.cursor.setState("default");
 
     this.dialogEventAdapter.subscribe();
+  }
+
+  private createCars() {
+    const carsObjects =
+      this.mapPort.getObjectLayerObjects("Cars");
+
+    if (!carsObjects) return;
+
+    const colliders = this.mapPort.getColliders();
+
+    const roadLayer = this.roadLayer;
+
+    if (!roadLayer) {
+      console.warn("Road layer não encontrada na scene");
+      return;
+    }
+
+    carsObjects.forEach((obj) => {
+      const direction =
+        this.getTiledProperty(obj, "direction") || "right";
+
+      const speed =
+        this.getTiledProperty(obj, "speed") || 50;
+
+      const car = new Car(
+        this,
+        obj.x!,
+        obj.y!,
+        "car",
+        roadLayer,
+      );
+
+      car.setDirection(direction);
+      car.setSpeed(speed);
+
+      if (colliders.length > 0) {
+        this.physics.add.collider(car, colliders);
+      }
+
+      this.cars.push(car);
+    });
   }
 
   private createPlayer() {
@@ -168,6 +222,8 @@ export class MainScene extends Scene {
       this.player.update();
       this.handleInteractions();
     }
+
+    this.cars.forEach((car) => car.update());
   }
 
   private initAudioAndInputs() {

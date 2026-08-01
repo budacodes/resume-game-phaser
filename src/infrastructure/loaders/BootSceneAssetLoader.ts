@@ -45,10 +45,7 @@ export class BootSceneAssetLoader {
       "assets/ui/linkedin.png",
     );
 
-    this.scene.load.image(
-      "github",
-      "assets/ui/github.png",
-    );
+    this.scene.load.image("github", "assets/ui/github.png");
 
     this.scene.load.image(
       "profile",
@@ -76,7 +73,7 @@ export class BootSceneAssetLoader {
     );
 
     this.scene.load.image("btn-e", "assets/ui/key_e.png");
-    
+
     this.scene.load.image(
       "icon_sound_on",
       "assets/ui/icon_sound_on.png",
@@ -129,6 +126,8 @@ export class BootSceneAssetLoader {
       "tiles_urban",
       "assets/map/urban.png",
     );
+
+    this.scene.load.image("car", "assets/car.png");
   }
 
   preloadSpritesheets(): void {
@@ -141,22 +140,26 @@ export class BootSceneAssetLoader {
       },
     );
 
-    this.scene.load.spritesheet("keys", "assets/ui/keys.png", 
+    this.scene.load.spritesheet(
+      "keys",
+      "assets/ui/keys.png",
       {
         frameWidth: 16,
         frameHeight: 16,
         startFrame: 0,
         endFrame: 111,
-      }
+      },
     );
-    
-    this.scene.load.spritesheet("special_keys", "assets/ui/special_keys.png", 
+
+    this.scene.load.spritesheet(
+      "special_keys",
+      "assets/ui/special_keys.png",
       {
         frameWidth: 32,
         frameHeight: 16,
         startFrame: 0,
         endFrame: 31,
-      }
+      },
     );
 
     this.scene.load.spritesheet(
@@ -246,7 +249,7 @@ export class BootSceneAssetLoader {
         frameHeight: 16,
       },
     );
-    
+
     this.scene.load.spritesheet(
       "guide",
       "assets/sprites/guide.png",

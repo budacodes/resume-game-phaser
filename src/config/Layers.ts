@@ -31,7 +31,10 @@ export const LAYER_CONFIG: Record<
   Fountain_Back: { depth: DEPTH.HIGH_OBJ, collides: true },
   Trees_Back: { depth: DEPTH.HIGH_OBJ, collides: false },
 
-  Fountain_Front: { depth: DEPTH.HIGH_OBJ, collides: false }, // Colide mas desenha na frente
+  Fountain_Front: {
+    depth: DEPTH.HIGH_OBJ,
+    collides: false,
+  }, // Colide mas desenha na frente
   Trees_Front: { depth: DEPTH.MID_OBJ, collides: true }, // Copa da árvore não colide, só tapa
   Windows: { depth: DEPTH.WALLS, collides: false },
   Windows_Top: { depth: DEPTH.ROOF, collides: false },
@@ -44,4 +47,8 @@ export const LAYER_CONFIG: Record<
   Furniture: { depth: DEPTH.WALLS, collides: true }, // Estantes, mesas
   Furniture_Top: { depth: DEPTH.MID_OBJ, collides: false }, // Parte de cima da estante
   Decorations: { depth: DEPTH.MID_OBJ, collides: true },
+  Road: {
+    depth: 1,
+    collides: false, // 🚨 MUITO IMPORTANTE: false!
+  },
 };

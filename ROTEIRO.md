@@ -14,12 +14,12 @@
 
 # IDEIAS
 
-- [ ] remover as instruções das configurações e criar um item de "documento de instruções" no inventário
 - [ ] mudar a interação da porta para que, do mesmo modo, seja necessário usar o cartão de acesso e não só interagir com a porta
 - [ ] adicionar movimento aos carros
 - [ ] adicionar no computador a interatividade para abrir meu livro
 - [ ] adicionar no computador a interatividade para abrir algum projeto
 - [ ] adicionar na mesa a interatividade para abrir meu curriculo
+- [x] remover as instruções das configurações e criar um item de "documento de instruções" no inventário
 - [x] adicionar o crachá gerado no inventário
 - [x] mudar a interação da fonte para que ao invés de perguntar se quer jogar a moeda, se o player der usar na moeda em frente a fonte, ai sim aconteça a interação de jogar a moeda e o barulho etc
 - [x] adicionar no computador a interatividade para abrir um cartão de visita com minhas redes
